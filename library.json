@@ -1,0 +1,33 @@
+{
+  "name": "CS123x",
+  "version": "1.0.0",
+  "description": "Arduino library for Chipsea CS1237 and CS1238 24-bit ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA, data rate, scale calibration, and internal temperature control.",
+  "keywords": [
+    "cs1237",
+    "cs1238",
+    "chipsea",
+    "adc",
+    "load-cell",
+    "scale",
+    "weight",
+    "weighing",
+    "sensor"
+  ],
+  "authors": [
+    {
+      "name": "FMazz97",
+      "url": "https://github.com/FMazz97",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/FMazz97/CS123x",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FMazz97/CS123x.git"
+  },
+  "frameworks": [
+    "arduino"
+  ],
+  "platforms": "*"
+}

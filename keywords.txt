@@ -1,0 +1,60 @@
+#######################################
+# Datatypes and Classes (KEYWORD1)
+#######################################
+
+CS123x	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+powerUp	KEYWORD2
+powerDown	KEYWORD2
+isReady	KEYWORD2
+forceRead	KEYWORD2
+getTimeoutMs	KEYWORD2
+read	KEYWORD2
+readAverage	KEYWORD2
+tare	KEYWORD2
+calibrateScale	KEYWORD2
+getValue	KEYWORD2
+getUnits	KEYWORD2
+setOffset	KEYWORD2
+getOffset	KEYWORD2
+setScale	KEYWORD2
+getScale	KEYWORD2
+setRef	KEYWORD2
+getRef	KEYWORD2
+setRate	KEYWORD2
+getRate	KEYWORD2
+setPGA	KEYWORD2
+getPGA	KEYWORD2
+setCh	KEYWORD2
+getCh	KEYWORD2
+setTempCalibration	KEYWORD2
+readTemperature	KEYWORD2
+
+#######################################
+# Constants and Enums (LITERAL1)
+#######################################
+
+CS123X_TYPE_CS1237	LITERAL1
+CS123X_TYPE_CS1238	LITERAL1
+CS123X_INT_REF_ON	LITERAL1
+CS123X_INT_REF_OFF	LITERAL1
+CS123X_GAIN_1	LITERAL1
+CS123X_GAIN_2	LITERAL1
+CS123X_GAIN_64	LITERAL1
+CS123X_GAIN_128	LITERAL1
+CS123X_RATE_10Hz	LITERAL1
+CS123X_RATE_40Hz	LITERAL1
+CS123X_RATE_640Hz	LITERAL1
+CS123X_RATE_1280Hz	LITERAL1
+CS123X_CH_A	LITERAL1
+CS123X_CH_B	LITERAL1
+CS123X_CH_TEMP	LITERAL1
+CS123X_CH_SHORT	LITERAL1
+CS123X_MIN_VALUE	LITERAL1
+CS123X_MAX_VALUE	LITERAL1
+CS123X_TIMEOUT_ERROR	LITERAL1
