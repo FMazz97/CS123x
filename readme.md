@@ -1,4 +1,4 @@
-# CS123x
+# CS123x - Arduino Library for Chipsea CS1237 & CS1238 24-bit ADCs
 
 Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, and internal temperature monitoring.
 
@@ -6,7 +6,7 @@ Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=
 
 While the HX711 is a widely popular choice for basic static weighing applications, modern force-measurement projects often require higher sampling rates and advanced internal diagnostics. 
 
-The Chipsea CS123x family bridges this gap by offering configurable output data rates up to **1280 SPS**, higher effective resolution (ENOB up to 20 bits), and built-in diagnostic features. 
+The Chipsea CS123x family bridges this gap by offering configurable output data rates up to **1280 SPS** to overcome HX711 80Hz limit, higher effective resolution (ENOB up to 20 bits), and built-in diagnostic features. 
 
 This library provides a robust, production-grade C++ driver for the Arduino ecosystem, making it easy to harness the full potential of CS1237 and CS1238 ADCs in both hobbyist and industrial applications.
 
