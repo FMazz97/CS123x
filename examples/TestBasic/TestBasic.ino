@@ -41,8 +41,8 @@ void setup() {
   // ---------------------------------------------------------------------------
   Serial.println(F("\n[2] TESTING SETTERS (Hardware Sync & Rollback)..."));
 
-  bool okGain = adc.setPGA(CS123X_GAIN_64, true);
-  Serial.print(F("setPGA(64): "));
+  bool okGain = adc.setGain(CS123X_GAIN_64, true);
+  Serial.print(F("setGain(64): "));
   Serial.println(okGain ? F("[OK]") : F("[FAIL]"));
 
   bool okRate = adc.setRate(CS123X_RATE_40Hz, true);
@@ -58,7 +58,7 @@ void setup() {
   Serial.println(okRef ? F("[OK]") : F("[FAIL]"));
 
   Serial.print(F("Read back -> Gain: "));
-  Serial.print(adc.getPGA());
+  Serial.print(adc.getGain());
   Serial.print(F(" | Rate: "));
   Serial.print(adc.getRate());
   Serial.print(F(" | Ch: "));
@@ -108,7 +108,7 @@ void setup() {
   Serial.println(F("[OK] Power Cycle executed."));
 
   // Final optimal configuration for the main read loop
-  adc.setPGA(CS123X_GAIN_128, true);
+  adc.setGain(CS123X_GAIN_128, true);
   adc.setRate(CS123X_RATE_10Hz, true);
   adc.setCh(CS123X_CH_A, true);
 

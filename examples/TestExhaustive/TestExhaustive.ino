@@ -44,8 +44,8 @@ void setup() {
   const char* pgaNames[] = { "GAIN_1", "GAIN_2", "GAIN_64", "GAIN_128" };
 
   for (uint8_t i = 0; i < 4; i++) {
-    bool ok = adc.setPGA(pgaList[i], true);  // Test setter with HW verification
-    uint8_t readBack = adc.getPGA();         // Test getter
+    bool ok = adc.setGain(pgaList[i], true);  // Test setter with HW verification
+    uint8_t readBack = adc.getGain();         // Test getter
     Serial.print(F("    Setting "));
     Serial.print(pgaNames[i]);
     Serial.print(F(" -> HW Sync: "));
@@ -173,7 +173,7 @@ void setup() {
   Serial.println(F("    powerUp() executed."));
 
   // Final optimal configuration for the main read loop
-  adc.setPGA(CS123X_GAIN_128, true);
+  adc.setGain(CS123X_GAIN_128, true);
   adc.setRate(CS123X_RATE_10Hz, true);
   adc.setCh(CS123X_CH_A, true);
 

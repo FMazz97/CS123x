@@ -330,7 +330,7 @@ bool CS123x::setRate(uint8_t rate, bool verify) {
 	return true;
 }
 
-bool CS123x::setPGA(uint8_t gain, bool verify) {
+bool CS123x::setGain(uint8_t gain, bool verify) {
 	if (gain > CS123X_GAIN_128) return false;  // Reject values > 3
 
 	uint8_t currentBaseGain = _baseGain;  // Backup

@@ -287,10 +287,10 @@ public:
    * @note If called while `CS123X_CH_TEMP` is active, the value is saved as baseline 
    *       and will be applied automatically upon returning to a standard channel.
    */
-  bool setPGA(uint8_t gain, bool verify = true);
+  bool setGain(uint8_t gain, bool verify = true);
 
   /// @brief Gets active PGA gain setting (CS123X_GAIN_...).
-  uint8_t getPGA() const {
+  uint8_t getGain() const {
     return _gain;
   }
 
