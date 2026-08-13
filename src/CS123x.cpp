@@ -32,15 +32,41 @@ static portMUX_TYPE cs123x_mux = portMUX_INITIALIZER_UNLOCKED;
 #define CS123X_DOUT_MODE INPUT_PULLUP
 #endif
 
-// GPIO Timing Synchronization:
-// Enforces a 1us pulse delay on high-speed 32-bit CPUs to meet CS123x timing specs.
-// Bypassed on 16 MHz AVR architectures where digitalWrite latency is already sufficient.
-#ifndef CS123X_BIT_DELAY
+// Fast pin I/O primitives:
+// On AVR, these bypass digitalWrite()/digitalRead() (several µs each on classic
+// 16MHz cores) via cached direct PORT/PIN register access. This is essential at
+// high ODR (640Hz/1280Hz): the chip's internal conversion cycle (as short as
+// ~0.78ms at 1280Hz) can complete WHILE a slow 46-clock register transaction is
+// still in progress, colliding with and corrupting it.
+// On other architectures, digitalWrite()/digitalRead() are kept unchanged.
 #if defined(__AVR__)
-#define CS123X_BIT_DELAY() ((void)0)
+#define CS123X_SCLK_HIGH() (*_sclkPortReg |= _sclkBitMask)
+#define CS123X_SCLK_LOW() (*_sclkPortReg &= ~_sclkBitMask)
+#define CS123X_DOUT_HIGH() (*_doutOutPortReg |= _doutBitMask)
+#define CS123X_DOUT_LOW() (*_doutOutPortReg &= ~_doutBitMask)
+#define CS123X_DOUT_READ() ((*_doutInPortReg & _doutBitMask) ? 1 : 0)
 #else
-#define CS123X_BIT_DELAY() delayMicroseconds(1)
+#define CS123X_SCLK_HIGH() digitalWrite(_sclk, HIGH)
+#define CS123X_SCLK_LOW() digitalWrite(_sclk, LOW)
+#define CS123X_DOUT_HIGH() digitalWrite(_dout, HIGH)
+#define CS123X_DOUT_LOW() digitalWrite(_dout, LOW)
+#define CS123X_DOUT_READ() digitalRead(_dout)
 #endif
+
+// GPIO Timing Synchronization:
+// A minimum pulse width/settling delay is required on every architecture to meet
+// CS123x timing specs (datasheet: SCLK pulse width t5 >= 455ns).
+// On 32-bit MCUs (ESP32/ESP8266/SAMD/STM32/...), this delay is mandatory because
+// direct digitalWrite()/digitalRead() calls alone are too fast and/or too jittery
+// to reliably guarantee it.
+// On AVR, fast direct PORT/PIN register access (see CS123X_SCLK_HIGH() etc.) bypasses
+// the digitalWrite()/digitalRead() overhead that used to provide this margin "for free",
+// so the same explicit delay is required here too.
+// Defined as an overridable macro (not a hardcoded call) so it possible to redefine it
+// before including this header for finer-grained control (e.g. a longer margin for a
+// noisier wiring/setup, or __builtin_avr_delay_cycles() for sub-microsecond tuning on AVR).
+#ifndef CS123X_BIT_DELAY
+#define CS123X_BIT_DELAY() delayMicroseconds(1)
 #endif
 
 CS123x::CS123x(CS123X_Type cs123xType, uint8_t dout, uint8_t sclk,
@@ -70,11 +96,21 @@ CS123x::CS123x(CS123X_Type cs123xType, uint8_t dout, uint8_t sclk,
 bool CS123x::begin() {
     pinMode(_dout, CS123X_DOUT_MODE);
     pinMode(_sclk, OUTPUT);
-    powerDown();
-    delayMicroseconds(200);
+    initFastIO();
     powerUp();
 
     return setConfig(true);
+}
+
+void CS123x::initFastIO() {
+#if defined(__AVR__)
+    _sclkPortReg = portOutputRegister(digitalPinToPort(_sclk));
+    _sclkBitMask = digitalPinToBitMask(_sclk);
+
+    _doutOutPortReg = portOutputRegister(digitalPinToPort(_dout));
+    _doutInPortReg = portInputRegister(digitalPinToPort(_dout));
+    _doutBitMask = digitalPinToBitMask(_dout);
+#endif
 }
 
 void CS123x::powerUp() {
@@ -152,7 +188,7 @@ bool CS123x::setConfig(bool verify) {
             yield();  // Yield to background system tasks
         }
 
-        uint8_t readBack = getConfig(); // in case of CS123X_TIMEOUT_ERROR will be returned false
+        uint8_t readBack = getConfig();  // in case of CS123X_TIMEOUT_ERROR will be returned false
         return (readBack & 0x80) && ((readBack & 0x7F) == config);
     } else
         return true;
@@ -196,43 +232,44 @@ uint32_t CS123x::readBits(uint8_t numBits) {
     uint32_t value = 0;
 
     for (uint8_t i = 0; i < numBits; i++) {
-        digitalWrite(_sclk, HIGH);
-        CS123X_BIT_DELAY();
-        value = (value << 1) | digitalRead(_dout);
-        digitalWrite(_sclk, LOW);
-        CS123X_BIT_DELAY();
+        CS123X_SCLK_HIGH();
+		CS123X_BIT_DELAY();
+		value = (value << 1) | CS123X_DOUT_READ();
+		CS123X_SCLK_LOW();
+		CS123X_BIT_DELAY();
     }
     return value;
 }
 
 void CS123x::writeBits(uint8_t data, uint8_t numBits) {
     for (int8_t i = numBits - 1; i >= 0; i--) {  // from MSB to LSB
-        digitalWrite(_dout, (data >> i) & 0x01);
-        digitalWrite(_sclk, HIGH);
+        if ((data >> i) & 0x01) CS123X_DOUT_HIGH();
+		else CS123X_DOUT_LOW();
+		CS123X_SCLK_HIGH();
         CS123X_BIT_DELAY();
-        digitalWrite(_sclk, LOW);
+        CS123X_SCLK_LOW();
         CS123X_BIT_DELAY();
     }
 }
 
 void CS123x::voidPulses(uint8_t count) {
     for (uint8_t i = 0; i < count; i++) {
-        digitalWrite(_sclk, HIGH);
+        CS123X_SCLK_HIGH();
         CS123X_BIT_DELAY();
-        digitalWrite(_sclk, LOW);
+        CS123X_SCLK_LOW();
         CS123X_BIT_DELAY();
     }
 }
 
 uint32_t CS123x::getTimeoutMs() const {
     // Rate		|		Setting time		| 	Timeot
-    // 10Hz		|		300ms						|		350ms
-    // 40Hz		|		75ms						|		100ms
-    // 640Hz	|		6.25ms					|		20ms
-    // 1280Hz	|		3.125ms					|		10ms
-    static constexpr uint32_t timeouts[4] = {500, 200, 100, 100};
+    // 10Hz		|		300ms				|		350ms
+    // 40Hz		|		75ms				|		110ms
+    // 640Hz	|		6.25ms				|		30ms
+    // 1280Hz	|		3.125ms				|		15ms
+    static constexpr uint32_t timeouts[4] = {350, 110, 30, 15};
 
-    return 1000;//timeouts[_rate & 0x03];
+    return timeouts[_rate & 0x03];
 }
 
 int32_t CS123x::read() {

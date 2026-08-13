@@ -95,6 +95,14 @@ class CS123x {
     uint8_t _sclk;            ///< Serial Clock / Power Down GPIO pin
     uint8_t _dout;            ///< Bidirectional Data Output / Input GPIO pin
 
+#if defined(__AVR__)
+    volatile uint8_t* _sclkPortReg;     ///< Direct AVR PORTx register for SCLK (fast I/O)
+    volatile uint8_t* _doutOutPortReg;  ///< Direct AVR PORTx register for DOUT output (fast I/O)
+    volatile uint8_t* _doutInPortReg;   ///< Direct AVR PINx register for DOUT input (fast I/O)
+    uint8_t _sclkBitMask;               ///< Bitmask for SCLK pin within its AVR port
+    uint8_t _doutBitMask;               ///< Bitmask for DOUT pin within its AVR port
+#endif
+
     CS123X_IntRef _refOff;    ///< Internal reference state (0x00 = ON, 0x01 = OFF)
     CS123X_Rate _rate;        ///< Active data rate setting
     CS123X_Gain _gain;        ///< Active PGA gain setting
@@ -139,6 +147,14 @@ class CS123x {
      * @param count Number of clock pulses to generate.
      */
     void voidPulses(uint8_t count);
+
+    /**
+     * @brief Caches direct AVR PORT/PIN register pointers and bitmasks for SCLK/DOUT,
+     *        bypassing digitalWrite()/digitalRead() overhead in the timing-critical
+     *        bit-bang loop. No-op on non-AVR architectures.
+     * @note Must be called after pin numbers are known (called from begin()).
+     */
+    void initFastIO();
 
    public:
     /**
