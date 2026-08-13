@@ -233,19 +233,21 @@ uint32_t CS123x::readBits(uint8_t numBits) {
 
     for (uint8_t i = 0; i < numBits; i++) {
         CS123X_SCLK_HIGH();
-		CS123X_BIT_DELAY();
-		value = (value << 1) | CS123X_DOUT_READ();
-		CS123X_SCLK_LOW();
-		CS123X_BIT_DELAY();
+        CS123X_BIT_DELAY();
+        value = (value << 1) | CS123X_DOUT_READ();
+        CS123X_SCLK_LOW();
+        CS123X_BIT_DELAY();
     }
     return value;
 }
 
 void CS123x::writeBits(uint8_t data, uint8_t numBits) {
     for (int8_t i = numBits - 1; i >= 0; i--) {  // from MSB to LSB
-        if ((data >> i) & 0x01) CS123X_DOUT_HIGH();
-		else CS123X_DOUT_LOW();
-		CS123X_SCLK_HIGH();
+        if ((data >> i) & 0x01)
+            CS123X_DOUT_HIGH();
+        else
+            CS123X_DOUT_LOW();
+        CS123X_SCLK_HIGH();
         CS123X_BIT_DELAY();
         CS123X_SCLK_LOW();
         CS123X_BIT_DELAY();
@@ -421,11 +423,16 @@ bool CS123x::setCh(CS123X_Channel channel, bool verify) {
 bool CS123x::setTempCalibration(float refTempC) {
     CS123X_Channel previousChannel = _channel;
 
-    if (!setCh(CS123X_CH_TEMP)) return false;
+    if (previousChannel != CS123X_CH_TEMP) {
+        if (!setCh(CS123X_CH_TEMP)) return false;
+    }
 
     int32_t rawCode = read();
 
-    if (!setCh(previousChannel)) return false;  // Fallback exit
+    if (previousChannel != CS123X_CH_TEMP) {
+        if (!setCh(previousChannel)) return false;  // Fallback exit
+    }
+
     if (rawCode == CS123X_TIMEOUT_ERROR) return false;
 
     _refTempC = refTempC;
@@ -443,11 +450,15 @@ float CS123x::readTemperature(uint8_t samples) {
 
     CS123X_Channel previousChannel = _channel;
 
-    if (!setCh(CS123X_CH_TEMP)) return NAN;
+    if (previousChannel != CS123X_CH_TEMP) {
+        if (!setCh(CS123X_CH_TEMP)) return NAN;
+    }
 
     int32_t rawCode = readAverage(samples);
 
-    if (!setCh(previousChannel)) return NAN;  // Fallback exit
+    if (previousChannel != CS123X_CH_TEMP) {
+        if (!setCh(previousChannel)) return NAN;  // Fallback exit
+    }
 
     if (rawCode == CS123X_TIMEOUT_ERROR) return NAN;
 

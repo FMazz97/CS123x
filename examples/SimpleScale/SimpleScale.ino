@@ -88,7 +88,7 @@ void loop() {
     Serial.println(F("[ERROR] Hardware read timeout!"));
   } else {
     Serial.print(F("Net Counts: "));
-    Serial.print(valueRaw, 0);
+    Serial.print(valueRaw);
     Serial.print(F(" | Weight: "));
     Serial.print(weightUnits, 2);
     Serial.println(F(" units"));
