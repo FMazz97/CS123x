@@ -57,6 +57,37 @@ The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box har
   <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring onboard TL431 precision reference circuit.</sub>
 </p>
 
+## ⚠️ Important: AVDD / Reference Current Budget for Low-Impedance Sensors
+
+The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors ($\ge 1.7\text{ k}\Omega$), it cannot supply enough current for low- or medium-impedance transducers — most notably standard **350 Ω full-bridge load cells** or low-resistance pressure sensors.
+
+### Issue Summary
+Any sensor connected to the $AVDD$ (or $E+$) rail draws excitation current through **R1**. The total current budget required for the reference node to stay in regulation is:
+
+$$I_{\text{total}} = I_{\text{sensor}} + I_{\text{bias(TL431)}} = \frac{V_{\text{REF}}}{R_{\text{sensor}}} + \sim 1\text{ mA}$$
+
+#### Example: Standard 350 Ω Load Cell
+* **Sensor Demand:** $2.5\text{ V} / 350\ \Omega \approx 7.1\text{ mA}$
+* **Total Budget Needed:** $7.1\text{ mA} + 1.0\text{ mA} \approx \mathbf{8.1\text{ mA}}$
+
+However, the stock resistor **R1 = 1 kΩ** severely restricts the available current supplied from $DVDD$:
+* **At DVDD = 3.3 V:** $I_{\text{avail}} = (3.3\text{ V} - 2.5\text{ V}) / 1\text{ k}\Omega = \mathbf{0.8\text{ mA}}$ *(insufficient)*
+* **At DVDD = 5.0 V:** $I_{\text{avail}} = (5.0\text{ V} - 2.5\text{ V}) / 1\text{ k}\Omega = \mathbf{2.5\text{ mA}}$ *(insufficient)*
+
+**Symptom:** The reference voltage collapses well below 2.5 V when a low-impedance load is connected, dropping below the CS123x minimum reference threshold (1.5 V) and causing saturated, noisy, or stuck ADC readings.
+
+### ✅ Fix
+Lower the effective series resistance by adding a resistor between the **DVDD** and **AVDD** nodes or soldering a resistor directly in parallel with **R1** according to the formula above. 
+
+For standard **350 Ω load cells**, the recommended values are:
+
+| DVDD Voltage | Parallel Resistor | Equivalent R1 | Available Current | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA at 3.3V<br>~27.4mA at 5.0V | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
+| **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA at 5.0V | **5V Rail Only:** Lower quiescent power, but insufficient if running at 3.3V. |
+
+> **Note:** Measure the input resistance across the power/excitation terminals (`E+/AVDD` <=> `E-/AGND`) with a multimeter if you are unsure of your sensor's impedance. If $R_{\text{sensor}} < 1.7\text{ k}\Omega$, this hardware modification is required.
+
 ---
 
 ## Key Features
@@ -68,6 +99,13 @@ The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box har
   * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to setters or `begin()`. Non-blocking polling can be built using `isReady()` and `forceRead()` directly in your main loop.
 * **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`getUnits()`).
 * **Internal Temperature Sensing:** Seamless temperature measurements in °C (`readTemperature()`), with automatic channel switching and gain restoration.
+
+### Tested Microcontrollers:
+
+* **Arduino Uno Rev3** (ATmega328P - 5V logic)
+* **Arduino Nano** (ATmega328P - 5V logic)
+* **Arduino Mega 2560** (ATmega2560 - 5V logic)
+* **ESP32** (32-bit dual-core - 3.3V logic)
 
 ---
 
@@ -125,6 +163,7 @@ This example initializes the CS123x ADC with safe default parameters, performs a
 
 // Reference weight used for calibration (e.g., 100.0 grams, kg, or lbs)
 #define KNOWN_WEIGHT 100.0f
+#define UNIT "kg"
 
 CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
 
@@ -168,7 +207,7 @@ void setup() {
   Serial.println(F("\n[3] SCALE FACTOR CALIBRATION"));
   Serial.print(F("    Place your known weight ("));
   Serial.print(KNOWN_WEIGHT);
-  Serial.println(F(" units) on scale..."));
+  Serial.println(F(" " UNIT ") on scale..."));
   delay(5000);  // Time to place the weight
 
   if (adc.calibrateScale(KNOWN_WEIGHT, 10)) {
@@ -197,10 +236,10 @@ void loop() {
     Serial.println(F("[ERROR] Hardware read timeout!"));
   } else {
     Serial.print(F("Net Counts: "));
-    Serial.print(valueRaw, 0);
+    Serial.print(valueRaw);
     Serial.print(F(" | Weight: "));
     Serial.print(weightUnits, 2);
-    Serial.println(F(" units"));
+    Serial.println(F(" " UNIT));
   }
 
   adc.powerDown();
@@ -210,6 +249,14 @@ void loop() {
 ```
 ###  Other examples
 See the [`examples/`](examples/) directory for complete, ready-to-run Arduino sketches.
+
+---
+
+## Credits & Acknowledgments
+
+* **Hardware Design & Reference Schematics:** Special thanks to [yasir-shahzad](https://github.com/yasir-shahzad) for providing open-source hardware documentation, schematics, and module images (licensed under [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.html)):
+  * [CS1237 24-Bit ADC Module Repository](https://github.com/yasir-shahzad/CS1237-24-Bit-ADC-Module)
+  * [CS1238 24-Bit ADC Module Repository](https://github.com/yasir-shahzad/CS1238-24-Bit-ADC-Module)
 
 ---
 

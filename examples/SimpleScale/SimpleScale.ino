@@ -16,6 +16,7 @@
 
 // Reference weight used for calibration (e.g., 100.0 grams, kg, or lbs)
 #define KNOWN_WEIGHT 100.0f
+#define UNIT "kg"
 
 CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
 
@@ -59,7 +60,7 @@ void setup() {
   Serial.println(F("\n[3] SCALE FACTOR CALIBRATION"));
   Serial.print(F("    Place your known weight ("));
   Serial.print(KNOWN_WEIGHT);
-  Serial.println(F(" units) on scale..."));
+  Serial.println(F(" " UNIT ") on scale..."));
   delay(5000);  // Time to place the weight
 
   if (adc.calibrateScale(KNOWN_WEIGHT, 10)) {
@@ -91,7 +92,7 @@ void loop() {
     Serial.print(valueRaw);
     Serial.print(F(" | Weight: "));
     Serial.print(weightUnits, 2);
-    Serial.println(F(" units"));
+    Serial.println(F(" " UNIT));
   }
 
   adc.powerDown();

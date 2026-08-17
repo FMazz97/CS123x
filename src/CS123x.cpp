@@ -194,7 +194,7 @@ bool CS123x::setConfig(bool verify) {
         return true;
 }
 
-uint8_t CS123x::getConfig() {
+int32_t CS123x::getConfig() {
     bool update = false;
     uint8_t config = 0;
 
@@ -264,7 +264,7 @@ void CS123x::voidPulses(uint8_t count) {
 }
 
 uint32_t CS123x::getTimeoutMs() const {
-    // Rate		|		Setting time		| 	Timeot
+    // Rate		|		Setting time		| 	    Timeot
     // 10Hz		|		300ms				|		350ms
     // 40Hz		|		75ms				|		110ms
     // 640Hz	|		6.25ms				|		30ms

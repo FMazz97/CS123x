@@ -126,7 +126,7 @@ class CS123x {
      * @brief Reads the configuration register from the ADC.
      * @return Raw configuration byte read from chip (Bit 7 contains the update flag).
      */
-    uint8_t getConfig();
+    int32_t getConfig();
 
     /**
      * @brief Reads a specified number of bits over the 2-wire serial protocol.
@@ -223,6 +223,11 @@ class CS123x {
      * @return 32-bit signed reading, or `CS123X_TIMEOUT_ERROR` (`0x80000000`) on timeout or bus failure.
      */
     int32_t read();
+
+    // TODO: implement readDualChannel(CS123X_Channel chA, CS123X_Channel chB) for CS1238
+    // interleave reads between two channels, avoiding a wasted conversion cycle per switch.
+    // Generalizes beyond dual-sensor setups: also applies to CS1237 use cases like
+    // alternating A/TEMP for thermal compensation, or A/SHORT for periodic auto-zero.
 
     /**
      * @brief Reads multiple raw samples and returns their arithmetic mean.

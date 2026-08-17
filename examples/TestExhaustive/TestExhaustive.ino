@@ -40,7 +40,7 @@ void setup() {
   // 2. EXHAUSTIVE PGA / GAIN TEST (All 4 valid values)
   // ---------------------------------------------------------------------------
   Serial.println(F("\n[2] EXHAUSTIVE PGA / GAIN TEST"));
-  const uint8_t pgaList[] = { CS123X_GAIN_1, CS123X_GAIN_2, CS123X_GAIN_64, CS123X_GAIN_128 };
+  const CS123X_Gain pgaList[] = { CS123X_GAIN_1, CS123X_GAIN_2, CS123X_GAIN_64, CS123X_GAIN_128 };
   const char* pgaNames[] = { "GAIN_1", "GAIN_2", "GAIN_64", "GAIN_128" };
 
   for (uint8_t i = 0; i < 4; i++) {
@@ -58,7 +58,7 @@ void setup() {
   // 3. EXHAUSTIVE DATA RATE TEST (All 4 valid values)
   // ---------------------------------------------------------------------------
   Serial.println(F("\n[3] EXHAUSTIVE DATA RATE TEST"));
-  const uint8_t rateList[] = { CS123X_RATE_10Hz, CS123X_RATE_40Hz, CS123X_RATE_640Hz, CS123X_RATE_1280Hz };
+  const CS123X_Rate rateList[] = { CS123X_RATE_10Hz, CS123X_RATE_40Hz, CS123X_RATE_640Hz, CS123X_RATE_1280Hz };
   const char* rateNames[] = { "10Hz", "40Hz", "640Hz", "1280Hz" };
 
   for (uint8_t i = 0; i < 4; i++) {
@@ -87,7 +87,7 @@ void setup() {
   // 4. EXHAUSTIVE CHANNEL TEST (All 4 valid channels)
   // ---------------------------------------------------------------------------
   Serial.println(F("\n[4] EXHAUSTIVE CHANNEL TEST"));
-  const uint8_t chList[] = { CS123X_CH_A, CS123X_CH_B, CS123X_CH_TEMP, CS123X_CH_SHORT };
+  const CS123X_Channel chList[] = { CS123X_CH_A, CS123X_CH_B, CS123X_CH_TEMP, CS123X_CH_SHORT };
   const char* chNames[] = { "CH_A", "CH_B", "CH_TEMP", "CH_SHORT" };
 
   for (uint8_t i = 0; i < 4; i++) {
@@ -112,7 +112,7 @@ void setup() {
   // 5. EXHAUSTIVE INT_REF TEST (On / Off)
   // ---------------------------------------------------------------------------
   Serial.println(F("\n[5] EXHAUSTIVE INT_REF TEST"));
-  const uint8_t refList[] = { CS123X_INT_REF_ON, CS123X_INT_REF_OFF };
+  const CS123X_IntRef refList[] = { CS123X_INT_REF_ON, CS123X_INT_REF_OFF };
   const char* refNames[] = { "REF_ON", "REF_OFF" };
 
   for (uint8_t i = 0; i < 2; i++) {
