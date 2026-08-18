@@ -2,40 +2,6 @@
 
 Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, and internal temperature monitoring.
 
-### Motivation
-
-While the HX711 is a widely popular choice for basic static weighing applications, modern force-measurement projects often require higher sampling rates and advanced internal diagnostics. 
-
-The Chipsea CS123x family bridges this gap by offering configurable output data rates up to **1280 SPS** to overcome HX711 80Hz limit, higher effective resolution (ENOB up to 20 bits), and built-in diagnostic features. 
-
-This library provides a robust, production-grade C++ driver for the Arduino ecosystem, making it easy to harness the full potential of CS1237 and CS1238 ADCs in both hobbyist and industrial applications.
-
-### CS123x vs. HX711 Comparison
-
-Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors, but they target different application requirements:
-
-| Feature | HX711 | CS123x Family (CS1237 / CS1238) |
-| :--- | :--- | :--- |
-| **Max Sampling Rate** | 10 or 80 SPS | **Up to 1280 SPS** (10, 40, 640, 1280 Hz) |
-| **Effective Resolution (ENOB)** | ~18.5 Bits (at 10 Hz, Gain 128) | **Up to 20.7 Bits** (at 10 Hz, Gain 128) |
-| **Configurability** | Hardware pin strapping & clock timing | **2-Wire SPI Register Control** |
-| **Temperature Diagnostics** | None | **Integrated On-Chip Temp Sensor** |
-| **Offset Calibration Mode** | External zeroing | **Internal Short-Circuit Mode (`INT_SHORT`)** |
-| **Target Application** | Static weighing & low-cost scales | Dynamic checkweighing, fast process control, thermal compensation |
-
-#### Key Advantages of the CS123x:
-
-* **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
-* **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
-* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
-* **Full Software Control:** PGA gain (1x, 2x, 64x, 128x) and channel selection are fully programmable on-the-fly via software registers.
-
-> **Note on Architecture & Application Scope:**  
-> Like most high-resolution scale ICs, the CS123x uses a **Sigma-Delta (Σ-Δ)** architecture with a digital filter (Sinc3). This makes it ideal for strain gauge load cells in dynamic weighing, material testing, and industrial process automation.  
-> For sub-millisecond impact or ballistic testing, dedicated **SAR ADCs** paired with **piezoelectric load cells** are typically required—though at a significantly higher system cost and complexity. The CS123x delivers high-speed capability for low-cost strain gauge sensors at an accessible price point.
-
----
-
 ## Hardware Architecture & Voltage Reference
 
 These popular breakout modules feature an onboard **TL431 precision shunt reference (2.5V)** to supply a low-noise analog voltage to the bridge excitation pin $AVDD$ or $+E$, effectively isolating sensitive weight measurements from digital MCU power supply noise.
@@ -49,9 +15,8 @@ The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box har
   * Leaving the internal reference OFF avoids introducing unwanted noise, ripple, and measurement instability caused by two reference sources interacting on the $AVDD$ line.
 
 * **Internal Reference (`CS123X_INT_REF_ON`):**
-  * Enables the internal reference generator inside the CS123x chip.
-  * **Hardware Customization Note:** The open **R5/R6** solder pads are provided on the PCB for hardware versatility. Closing this bridge (with a 0Ω resistor or solder blob) bypasses the TL431 regulator (e.g., connecting $AVDD$ directly to $DVDD$). Enable `CS123X_INT_REF_ON` **only** if you have hardware-modified the module to bypass the external TL431 circuit.
-
+  * Enables the internal reference generator inside the CS123x chip, which drives $REFOUT$ to output $DVDD$ directly.
+  * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties $REFOUT$ directly to the same $AVDD$ / $REFIN$ node already driven by the onboard TL431. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On most commercial modules the TL431 shares a trace with $AVDD$ that can't be isolated without PCB rework, so in practice this bridge should be left open.
 <p align="center">
   <img src="assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
   <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring onboard TL431 precision reference circuit.</sub>
@@ -77,7 +42,7 @@ However, the stock resistor **R1 = 1 kΩ** severely restricts the available curr
 **Symptom:** The reference voltage collapses well below 2.5 V when a low-impedance load is connected, dropping below the CS123x minimum reference threshold (1.5 V) and causing saturated, noisy, or stuck ADC readings.
 
 ### ✅ Fix
-Lower the effective series resistance by adding a resistor between the **DVDD** and **AVDD** nodes or soldering a resistor directly in parallel with **R1** according to the formula above. 
+Lower the effective series resistance by adding a resistor between the **DVDD** and **AVDD** nodes or soldering a resistor directly in parallel with **R1** according to the formula above.
 
 For standard **350 Ω load cells**, the recommended values are:
 
@@ -96,7 +61,7 @@ For standard **350 Ω load cells**, the recommended values are:
 * **Full ADC Configuration:** Runtime control over PGA Gain (1x to 128x), Output Data Rate (10 Hz to 1280 Hz), Channel Selection, and Reference Source.
 * **Dual Execution Modes (Safe Blocking vs. Fast Non-Blocking):**
   * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts and cooperative `yield()` calls. Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.
-  * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to setters or `begin()`. Non-blocking polling can be built using `isReady()` and `forceRead()` directly in your main loop.
+  * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to setters or `begin()`. Non-blocking polling can be built using `isReady()` and `forceRead()` directly in your main loop or attach a hardware interrupt on the `DOUT` pin's falling edge (data-ready signal) instead of polling `isReady()`.
 * **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`getUnits()`).
 * **Internal Temperature Sensing:** Seamless temperature measurements in °C (`readTemperature()`), with automatic channel switching and gain restoration.
 
@@ -131,21 +96,77 @@ The CS123x uses a custom 2-wire serial protocol over standard digital GPIO pins.
 | **A+** | Channel A Non-Inverting Signal | Green / White Wire ($S+$) |
 | **A-** | Channel A Inverting Signal | White / Green Wire ($S-$) |
 | **B+ / B-** | Channel B Differential Signal *(CS1238 only)* | Second Load Cell Signal |
-<!-- DO NOT SHOW UNTIL ARDUINO AND PLATFORMIO LIBRARY MANEAGER WAS UPTDATE
+
+---
+
+## Motivation
+
+While the HX711 is a widely popular choice for basic static weighing applications, modern force-measurement projects often require higher sampling rates and advanced internal diagnostics.
+
+The Chipsea CS123x family bridges this gap by offering configurable output data rates up to **1280 SPS** to overcome HX711 80Hz limit, higher effective resolution (ENOB up to 20 bits), and built-in diagnostic features.
+
+This library provides a robust, production-grade C++ driver for the Arduino ecosystem, making it easy to harness the full potential of CS1237 and CS1238 ADCs in both hobbyist and industrial applications.
+
+### CS123x vs. HX711 Comparison
+
+Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors, but they target different application requirements:
+
+| Feature | HX711 | CS123x Family (CS1237 / CS1238) |
+| :--- | :--- | :--- |
+| **Max Sampling Rate** | 10 or 80 SPS | **Up to 1280 SPS** (10, 40, 640, 1280 Hz) |
+| **Effective Resolution (ENOB)** | ~18.5 Bits (at 10 Hz, Gain 128) | **Up to 20.7 Bits** (at 10 Hz, Gain 128) |
+| **Configurability** | Hardware pin strapping & clock timing | **2-Wire SPI Register Control** |
+| **Temperature Diagnostics** | None | **Integrated On-Chip Temp Sensor** |
+| **Offset Calibration Mode** | External zeroing | **Internal Short-Circuit Mode (`INT_SHORT`)** |
+| **Target Application** | Static weighing & low-cost scales | Dynamic checkweighing, fast process control, thermal compensation |
+
+#### Key Advantages of the CS123x:
+
+* **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
+* **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
+* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
+* **Full Software Control:** PGA gain (1x, 2x, 64x, 128x) and channel selection are fully programmable on-the-fly via software registers.
+
+> **Note on Architecture & Application Scope:**
+> Like most high-resolution scale ICs, the CS123x uses a **Sigma-Delta (Σ-Δ)** architecture with a digital filter (Sinc3). This makes it ideal for strain gauge load cells in dynamic weighing, material testing, and industrial process automation.
+> For sub-millisecond impact or ballistic testing, dedicated **SAR ADCs** paired with **piezoelectric load cells** are typically required—though at a significantly higher system cost and complexity. The CS123x delivers high-speed capability for low-cost strain gauge sensors at an accessible price point.
+
 ---
 
 ## Quick Start
 
 ### Installation
 
-* **Arduino IDE:** Open the **Library Manager** (`Ctrl+Shift+I`), search for `CS123x`, and click **Install**.
-* **PlatformIO:** Add the library to your `platformio.ini` project configuration:
+#### Arduino IDE
 
+**Via Library Manager (recommended):**
+Open the **Library Manager** (`Ctrl+Shift+I`), search for `CS123x`, and click **Install**.
+
+**Manual installation:**
+Download or clone this repository into your Arduino `libraries` folder
+(`Documents/Arduino/libraries/CS123x`), then restart the IDE.
+
+#### PlatformIO
+
+**Via Registry (recommended):**
+Add the library to your `platformio.ini` project configuration:
 ```ini
 lib_deps =
     CS123x
-```-->
+```
+To pin a specific version (recommended for reproducible builds):
+```ini
+lib_deps =
+    CS123x@^1.0.0
+```
 
+**Manual installation:**
+Reference the repository directly in `platformio.ini`, without going through
+the registry:
+```ini
+lib_deps =
+    https://github.com/FMazz97/CS123x.git
+```
 ---
 
 ## Usage Examples
@@ -217,9 +238,9 @@ void setup() {
     Serial.println(F("    [FAIL] Calibration failed. Check load cell wiring/weight."));
   }
 
-  /* 
+  /*
     Option B: Restoring calibration parameters saved in EEPROM/Flash
-    adc.setScale(123.4f); 
+    adc.setScale(123.4f);
   */
 
   Serial.println(F("\n================================================"));
