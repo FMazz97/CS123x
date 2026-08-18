@@ -1,6 +1,6 @@
 {
   "name": "CS123x",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Arduino library for Chipsea CS1237 and CS1238 24-bit ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA, data rate, scale calibration, and internal temperature control.",
   "keywords": [
     "cs1237",
