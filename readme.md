@@ -18,7 +18,7 @@ The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box har
   * Enables the internal reference generator inside the CS123x chip, which drives $REFOUT$ to output $DVDD$ directly.
   * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties $REFOUT$ directly to the same $AVDD$ / $REFIN$ node already driven by the onboard TL431. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On most commercial modules the TL431 shares a trace with $AVDD$ that can't be isolated without PCB rework, so in practice this bridge should be left open.
 <p align="center">
-  <img src="assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
+  <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
   <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring onboard TL431 precision reference circuit.</sub>
 </p>
 

@@ -71,10 +71,10 @@ static portMUX_TYPE cs123x_mux = portMUX_INITIALIZER_UNLOCKED;
 
 CS123x::CS123x(CS123X_Type cs123xType, uint8_t dout, uint8_t sclk,
                CS123X_Gain gain, CS123X_Rate rate,
-               CS123X_Channel channel, CS123X_IntRef intRef) : _dout(dout),
+               CS123X_Channel channel, CS123X_IntRef intRef) : _cs123xType((cs123xType <= CS123X_TYPE_CS1238) ? cs123xType : CS123X_TYPE_CS1237),
+                                                               _dout(dout),
                                                                _sclk(sclk),
                                                                // Fallback to safe defaults if invalid parameters are provided
-                                                               _cs123xType((cs123xType <= CS123X_TYPE_CS1238) ? cs123xType : CS123X_TYPE_CS1237),
                                                                _baseGain((gain <= CS123X_GAIN_128) ? gain : CS123X_GAIN_128),
                                                                _rate((rate <= CS123X_RATE_1280Hz) ? rate : CS123X_RATE_10Hz),
                                                                _refOff((intRef <= CS123X_INT_REF_OFF) ? intRef : CS123X_INT_REF_OFF) {
@@ -179,10 +179,12 @@ bool CS123x::setConfig(bool verify) {
     CS123X_EXIT_CRITICAL();
 
     if (verify) {
+        uint32_t start = millis();
         while (isReady()) {
+            if (millis() - start >= getTimeoutMs()) return false;
             yield();  // Yield to background system tasks.
         }
-        uint32_t start = millis();
+        start = millis();
         while (!isReady()) {
             if (millis() - start >= getTimeoutMs()) return false;
             yield();  // Yield to background system tasks
@@ -264,11 +266,11 @@ void CS123x::voidPulses(uint8_t count) {
 }
 
 uint32_t CS123x::getTimeoutMs() const {
-    // Rate		|		Setting time		| 	    Timeot
-    // 10Hz		|		300ms				|		350ms
-    // 40Hz		|		75ms				|		110ms
-    // 640Hz	|		6.25ms				|		30ms
-    // 1280Hz	|		3.125ms				|		15ms
+    // Rate		|	Setting time (t2)	|   Conversion time (t9)    |   Timeout
+    // 10Hz		|	300ms				|	100ms                   |	350ms
+    // 40Hz		|	75ms				|	25ms                    |	110ms
+    // 640Hz	|	6.25ms				|	1.5625ms                |	30ms
+    // 1280Hz	|	3.125ms				|	0.78125ms               |	15ms
     static constexpr uint32_t timeouts[4] = {350, 110, 30, 15};
 
     return timeouts[_rate & 0x03];

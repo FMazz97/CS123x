@@ -92,8 +92,8 @@ constexpr int32_t CS123X_TIMEOUT_ERROR = 0x80000000;
 class CS123x {
    private:
     CS123X_Type _cs123xType;  ///< ADC chip model (CS123X_TYPE_...)
-    uint8_t _sclk;            ///< Serial Clock / Power Down GPIO pin
     uint8_t _dout;            ///< Bidirectional Data Output / Input GPIO pin
+    uint8_t _sclk;            ///< Serial Clock / Power Down GPIO pin
 
 #if defined(__AVR__)
     volatile uint8_t* _sclkPortReg;     ///< Direct AVR PORTx register for SCLK (fast I/O)
@@ -103,11 +103,11 @@ class CS123x {
     uint8_t _doutBitMask;               ///< Bitmask for DOUT pin within its AVR port
 #endif
 
-    CS123X_IntRef _refOff;    ///< Internal reference state (0x00 = ON, 0x01 = OFF)
-    CS123X_Rate _rate;        ///< Active data rate setting
     CS123X_Gain _gain;        ///< Active PGA gain setting
     CS123X_Gain _baseGain;    ///< Baseline PGA gain setting for normal channels
+    CS123X_Rate _rate;        ///< Active data rate setting
     CS123X_Channel _channel;  ///< Currently selected input channel
+    CS123X_IntRef _refOff;    ///< Internal reference state (0x00 = ON, 0x01 = OFF)
 
     int32_t _offset = 0;  ///< Raw ADC zero-load offset in counts (tare value)
     float _scale = 1.0f;  ///< Scale factor (ADC counts per physical unit)
