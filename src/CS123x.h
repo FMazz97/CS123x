@@ -4,6 +4,7 @@
 ///          and public API declarations for interfacing with CS1237 and CS1238 ADCs
 ///          over a custom 2-wire serial interface.
 /// @author FMazz97 (https://github.com/FMazz97)
+/// @see CS123x GitHub Repository: https://github.com/FMazz97/CS123x
 /// @copyright MIT License
 
 #ifndef CS123X_H

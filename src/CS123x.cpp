@@ -4,6 +4,7 @@
 ///          mechanisms with automatic rollback, tare/scale calibration logic,
 ///          and internal temperature sensor reading routines.
 /// @author FMazz97 (https://github.com/FMazz97)
+/// @see CS123x GitHub Repository: https://github.com/FMazz97/CS123x
 /// @copyright MIT License
 
 #include "CS123x.h"

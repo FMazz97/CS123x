@@ -4,32 +4,40 @@ Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=
 
 ## Hardware Architecture & Voltage Reference
 
-These popular breakout modules feature an onboard **TL431 precision shunt reference (2.5V)** to supply a low-noise analog voltage to the bridge excitation pin $AVDD$ or $+E$, effectively isolating sensitive weight measurements from digital MCU power supply noise.
+These breakout modules feature an onboard **TL431 precision shunt reference (2.5V)** to supply a low-noise analog voltage to the bridge excitation pin $AVDD$ or $+E$, effectively isolating sensitive weight measurements from digital MCU power supply noise.
 
 ### Voltage Reference Modes (`setRef`)
 
-The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box hardware configuration of commercial modules.
+The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box hardware configuration of the reference modules shown below.
 
-* **External Reference (`CS123X_INT_REF_OFF` - DEFAULT):**
-  * **Factory default setting.** Commercial breakout modules ship with the jumper pads (**R5** on CS1237 / **R6** on CS1238) **OPEN**. In this state, the module uses the onboard TL431 to supply a clean 2.5V reference.
+* **External Reference (`CS123X_INT_REF_OFF`):**
+  * **Factory default setting.** The reference modules ship with the jumper pads (**R5** on CS1237 / **R6** on CS1238) **OPEN**. In this state, the module uses the onboard TL431 to supply a clean 2.5V reference.
   * Leaving the internal reference OFF avoids introducing unwanted noise, ripple, and measurement instability caused by two reference sources interacting on the $AVDD$ line.
 
 * **Internal Reference (`CS123X_INT_REF_ON`):**
   * Enables the internal reference generator inside the CS123x chip, which drives $REFOUT$ to output $DVDD$ directly.
-  * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties $REFOUT$ directly to the same $AVDD$ / $REFIN$ node already driven by the onboard TL431. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On most commercial modules the TL431 shares a trace with $AVDD$ that can't be isolated without PCB rework, so in practice this bridge should be left open.
+  * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties $REFOUT$ directly to the same $AVDD$ / $REFIN$ node already driven by the onboard TL431. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On the reference modules, the TL431 shares a trace with $AVDD$ that can't be isolated without PCB rework, so in practice this bridge should be left open.
 <p align="center">
   <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
-  <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring onboard TL431 precision reference circuit.</sub>
+  <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring an onboard TL431 precision reference IC.</sub>
 </p>
 
-## ⚠️ Important: Reference Current Limit for Low-Impedance Sensors
+## ⚠️ Important: Current Limit for Low-Impedance Sensors
 
-The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors ($\ge 1.7\text{ k}\Omega$), it cannot supply enough current for low- or medium-impedance transducers — most notably standard **350 Ω full-bridge load cells** or low-resistance pressure sensors.
+The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors ($\ge 1.7\text{ k}\Omega$), it cannot supply enough current for low/medium-impedance transducers, most notably standard **350 Ω full-bridge load cells** and low-resistance pressure sensors.
 
 ### Issue Summary
-Any sensor connected to the $AVDD$ (or $E+$) rail draws excitation current through **R1**. The total current budget required for the reference node to stay in regulation is:
+Any sensor connected to the $AVDD$ (or $E+$) rail draws excitation current through **R1**. The reference node stays in regulation only as long as the current it can supply covers what the sensor and the TL431 itself both need:
+
+$$I_{\text{avail}} \geq I_{\text{total}}$$
+
+**Current required by the sensor and the TL431's own bias:**
 
 $$I_{\text{total}} = I_{\text{sensor}} + I_{\text{bias(TL431)}} = \frac{V_{\text{REF}}}{R_{\text{sensor}}} + \sim 1\text{ mA}$$
+
+**Current actually available from DVDD through R1:**
+
+$$I_{\text{avail}} = \frac{V_{\text{DVDD}} - V_{\text{REF}}}{R_1}$$
 
 #### Example: Standard 350 Ω Load Cell
 * **Sensor Demand:** $2.5\text{ V} / 350\ \Omega \approx 7.1\text{ mA}$
@@ -51,7 +59,11 @@ For standard **350 Ω load cells**, the recommended values are:
 | **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA at 3.3V<br>~27.4mA at 5.0V | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
 | **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA at 5.0V | **5V Rail Only:** Lower quiescent power, but insufficient if running at 3.3V. |
 
-> **Note:** Measure the input resistance across the power/excitation terminals (`E+/AVDD` <=> `E-/AGND`) with a multimeter if you are unsure of your sensor's impedance. If $R_{\text{sensor}} < 1.7\text{ k}\Omega$, this hardware modification is required.
+> **Note:** Measure the input resistance across the power/excitation terminals (`E+/AVDD` <=> `E-/AGND`) with a multimeter if you are unsure of your sensor's impedance.
+>
+> **CS1238 users:** Channel A and Channel B share the same $AVDD$ excitation rail. If using two sensors simultaneously, size the fix for their combined current draw, not a single sensor.
+>
+> Use the formulas above with the sensor's resistance and supply voltage to work out whether, and how much, R1 needs to be adjusted.
 
 ---
 
@@ -70,7 +82,9 @@ For standard **350 Ω load cells**, the recommended values are:
 * **Arduino Uno Rev3** (ATmega328P - 5V logic)
 * **Arduino Nano** (ATmega328P - 5V logic)
 * **Arduino Mega 2560** (ATmega2560 - 5V logic)
-* **ESP32** (32-bit dual-core - 3.3V logic)
+* **ESP32-WROOM-32** on NodeMCU-32S V1.1 (ESP32 - 3.3V logic)
+* **ESP32-WROOM-32** on the [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display) (ESP32 - 3.3V logic)
+* **ESP8266** on NodeMCU V2 (ESP8266 - 3.3V logic)
 
 ---
 
