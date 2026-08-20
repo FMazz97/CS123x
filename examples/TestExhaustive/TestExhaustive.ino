@@ -2,7 +2,12 @@
 /// @brief Comprehensive hardware and API test suite for the CS123x library.
 /// @details Exhaustively tests all valid PGA gain settings, data output rates,
 ///          input channels, internal reference modes, calibration overloads, and polling timeouts.
-/// @author FMazz97 (https://github.com/FMazz97)
+/// @warning TL431 Current Limitation: Stock modules are current-limited by R1 (1 kΩ).
+///          For low-impedance sensors (e.g., 350 Ω load cells), reduce R1 by adding a resistor 
+///          between DVDD and AVDD. For full details, see the README
+///          [AVDD / Reference Current Budget](https://github.com/FMazz97/CS123x#%EF%B8%8F-important-reference-current-limit-for-low-impedance-sensors)
+/// @author FMazz97
+/// @see [CS123x GitHub Repository](https://github.com/FMazz97/CS123x)
 /// @copyright MIT License
 /// @example TestExhaustive.ino
 

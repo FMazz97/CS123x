@@ -22,7 +22,7 @@ The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box har
   <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring onboard TL431 precision reference circuit.</sub>
 </p>
 
-## ⚠️ Important: AVDD / Reference Current Budget for Low-Impedance Sensors
+## ⚠️ Important: Reference Current Limit for Low-Impedance Sensors
 
 The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors ($\ge 1.7\text{ k}\Omega$), it cannot supply enough current for low- or medium-impedance transducers — most notably standard **350 Ω full-bridge load cells** or low-resistance pressure sensors.
 
