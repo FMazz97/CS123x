@@ -191,7 +191,7 @@ bool CS123x::setConfig(bool verify) {
             yield();  // Yield to background system tasks
         }
 
-        uint8_t readBack = getConfig();  // in case of CS123X_TIMEOUT_ERROR will be returned false
+        int32_t  readBack = getConfig();  // in case of CS123X_TIMEOUT_ERROR will be returned false
         return (readBack & 0x80) && ((readBack & 0x7F) == config);
     } else
         return true;

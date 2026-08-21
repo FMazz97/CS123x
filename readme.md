@@ -19,12 +19,12 @@ The library defaults to **`CS123X_INT_REF_OFF`** to match the out-of-the-box har
   * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties $REFOUT$ directly to the same $AVDD$ / $REFIN$ node already driven by the onboard TL431. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On the reference modules, the TL431 shares a trace with $AVDD$ that can't be isolated without PCB rework, so in practice this bridge should be left open.
 <p align="center">
   <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
-  <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring an onboard TL431 precision reference IC.</sub>
+  <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring an onboard TL431 precision voltage reference IC.</sub>
 </p>
 
 ## ⚠️ Important: Current Limit for Low-Impedance Sensors
 
-The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors ($\ge 1.7\text{ k}\Omega$), it cannot supply enough current for low/medium-impedance transducers, most notably standard **350 Ω full-bridge load cells** and low-resistance pressure sensors.
+The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors ($\ge 1.7\text{ k}\Omega$), it cannot supply enough current for low/medium-impedance transducers such as standard **350 Ω full-bridge load cells**.
 
 ### Issue Summary
 Any sensor connected to the $AVDD$ (or $E+$) rail draws excitation current through **R1**. The reference node stays in regulation only as long as the current it can supply covers what the sensor and the TL431 itself both need:
@@ -61,7 +61,7 @@ For standard **350 Ω load cells**, the recommended values are:
 
 > **Note:** Measure the input resistance across the power/excitation terminals (`E+/AVDD` <=> `E-/AGND`) with a multimeter if you are unsure of your sensor's impedance.
 >
-> **CS1238 users:** Channel A and Channel B share the same $AVDD$ excitation rail. If using two sensors simultaneously, size the fix for their combined current draw, not a single sensor.
+> **CS1238:** Channel A and Channel B share the same $AVDD$ excitation rail. If using two sensors simultaneously, size the fix for their combined current draw.
 >
 > Use the formulas above with the sensor's resistance and supply voltage to work out whether, and how much, R1 needs to be adjusted.
 
@@ -84,7 +84,12 @@ For standard **350 Ω load cells**, the recommended values are:
 * **Arduino Mega 2560** (ATmega2560 - 5V logic)
 * **ESP32-WROOM-32** on NodeMCU-32S V1.1 (ESP32 - 3.3V logic)
 * **ESP32-WROOM-32** on the [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display) (ESP32 - 3.3V logic)
+* **ESP32-S3** on ESP32-S3-DevKitC-1 (ESP32-S3 - 3.3V logic)
+* **ESP32-C3** on ESP32-C3 SuperMini (ESP32-C3 - 3.3V logic)
 * **ESP8266** on NodeMCU V2 (ESP8266 - 3.3V logic)
+* **ESP8266** on ESP-01S (ESP8266 - 3.3V logic)
+
+> **Note:** All ESP32/ESP8266 targets above were tested using the **Arduino framework**.
 
 ---
 
