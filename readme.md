@@ -2,6 +2,143 @@
 
 Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
+  <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right).</sub>
+</p>
+
+---
+
+## Motivation
+
+While the HX711 is a widely popular choice for basic static weighing applications, modern force-measurement projects often require higher sampling rates and advanced internal diagnostics.
+
+The Chipsea CS123x family bridges this gap by offering configurable output data rates up to **1280 SPS** to overcome HX711 80Hz limit, higher effective resolution (ENOB up to 20 bits), and built-in diagnostic features.
+
+This library provides a robust, production-grade C++ driver for the Arduino ecosystem, making it easy to harness the full potential of CS1237 and CS1238 ADCs in both hobbyist and industrial applications.
+
+### CS123x vs. HX711 Comparison
+
+Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors, but they target different application requirements:
+
+| Feature | HX711 | CS123x Family (CS1237 / CS1238) |
+| :--- | :--- | :--- |
+| **Max Sampling Rate** | 10 or 80 SPS | **Up to 1280 SPS** (10, 40, 640, 1280 Hz) |
+| **Effective Resolution (ENOB)** | ~18.5 Bits (at 10 Hz, Gain 128) | **Up to 20.7 Bits** (at 10 Hz, Gain 128) |
+| **Temperature Diagnostics** | None | **Integrated On-Chip Temp Sensor** |
+| **Offset Calibration Mode** | External zeroing | **Internal Short-Circuit Mode** |
+| **Target Application** | Static weighing & low-cost scales | Dynamic checkweighing, fast process control, thermal compensation |
+
+#### Key Advantages of the CS123x:
+
+* **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
+* **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
+* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
+* **Full Software Control:** PGA gain (1x, 2x, 64x, 128x) and channel selection are fully programmable on-the-fly via software registers.
+
+> **Note on Architecture & Application Scope:**
+> Like most high-resolution scale ICs, the CS123x uses a **Sigma-Delta (Σ-Δ)** architecture with a digital filter (Sinc3). This makes it ideal for strain gauge load cells in dynamic weighing, material testing, and industrial process automation.
+> For sub-millisecond impact or ballistic testing, dedicated **SAR ADCs** paired with **piezoelectric load cells** are typically required—though at a significantly higher system cost and complexity. The CS123x delivers high-speed capability for low-cost strain gauge sensors at an accessible price point.
+
+---
+
+## Key Features
+
+* **Dual Chip Support:** Native C++ driver for both Chipsea **CS1237** (single channel) and **CS1238** (2 differential channels) 24-bit ADCs.
+* **Full ADC Configuration:** Runtime control over PGA Gain (1x to 128x), Output Data Rate (10 Hz to 1280 Hz), Channel Selection, and Reference Source.
+* **Dual Execution Modes (Safe Blocking vs. Fast Non-Blocking):**
+  * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts and cooperative `yield()` calls preventing WatchDog Timer resets on ESP8266/ESP32 even across repeated calls (e.g. inside `readAverage()`). Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.
+  * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to register setters. Non-blocking polling can be built using `isReady()` and `forceRead()` directly in your main loop or attach a hardware interrupt on the `DOUT` pin's falling edge (data-ready signal) instead of polling `isReady()`.
+* **Internal Temperature Sensing:** Seamless temperature measurements in °C (`readTemperature()`), with automatic channel switching and gain restoration.
+* **Internal Short-Circuit Diagnostics:** Switch to the on-chip short-circuit channel (`CS123X_CH_SHORT`) to measure zero-offset drift without physically disconnecting the sensor.
+* **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`getUnits()`).
+
+> For the complete list of methods, parameters, and return values, see the fully Doxygen-documented [`CS123x.h`](https://github.com/FMazz97/CS123x/blob/main/src/CS123x.h) header.
+
+---
+
+## Compatibility
+
+### Tested Microcontrollers:
+
+Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif targets (3.3V logic):
+
+
+* **Arduino Uno Rev3** (ATmega328P - 5V logic)
+* **Arduino Nano** (ATmega328P - 5V logic)
+* **Arduino Mega 2560** (ATmega2560 - 5V logic)
+* **ESP32-WROOM-32** on NodeMCU-32S V1.1 (ESP32 - 3.3V logic)
+* **ESP32-WROOM-32** on the [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display) (ESP32 - 3.3V logic)
+* **ESP32-S3** on ESP32-S3-DevKitC-1 (ESP32-S3 - 3.3V logic)
+* **ESP32-C3** on ESP32-C3 SuperMini (ESP32-C3 - 3.3V logic)
+* **ESP8266** on NodeMCU V2 (ESP8266 - 3.3V logic)
+* **ESP8266** on ESP-01S (ESP8266 - 3.3V logic)
+
+> **Note:** All ESP32/ESP8266 targets above were tested using the **Arduino framework**, as declared in the library manifest, using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
+
+---
+
+## Quick Start
+
+### Installation
+
+#### Arduino IDE
+
+**Via Library Manager (recommended):**
+Open the **Library Manager** (`Ctrl+Shift+I`), search for `CS123x`, and click **Install**.
+
+**Manual installation:**
+Download or clone this repository into your Arduino `libraries` folder
+(`Documents/Arduino/libraries/CS123x`), then restart the IDE.
+
+#### PlatformIO
+
+**Via Registry (recommended):**
+Add the library to your `platformio.ini` project configuration:
+```ini
+lib_deps =
+    CS123x
+```
+To pin a specific version (recommended for reproducible builds):
+```ini
+lib_deps =
+    CS123x@^1.0.3
+```
+
+**Manual installation:**
+Reference the repository directly in `platformio.ini`, without going through
+the registry:
+```ini
+lib_deps =
+    https://github.com/FMazz97/CS123x.git
+```
+---
+
+## Wiring & Pinout
+
+The CS123x uses a custom 2-wire serial protocol over standard digital GPIO pins.
+
+### Digital Pin Connections (MCU to ADC Module)
+
+| Pin Symbol (PCB) | Description | MCU Connection |
+| :--- | :--- | :--- |
+| **VCC / DVDD** | Digital Power Supply (2.7V – 5.5V) | MCU 3.3V or 5V |
+| **GND / DGND** | Digital Ground | MCU GND |
+| **SCK / SCLK** | Serial Clock Input / Power-Down Control | Any Digital Output Pin |
+| **DT / DOUT** | Bidirectional Data Line / Ready Signal | Any Digital GPIO Pin |
+
+### Analog Pin Connections (Module to Load Cell)
+
+| Pin Symbol (PCB) | Description | Load Cell Wire |
+| :--- | :--- | :--- |
+| **E+ / AVDD** | Bridge Excitation Voltage (+) | Red Wire ($E+$) |
+| **E- / AGND** | Analog Ground (-) | Black Wire ($E-$) / Cable shield |
+| **A+** | Channel A Non-Inverting Signal | Green / White Wire ($S+$) |
+| **A-** | Channel A Inverting Signal | White / Green Wire ($S-$) |
+| **B+ / B-** | Channel B Differential Signal *(CS1238 only)* | Second Load Cell Signal |
+
+---
+
 ## Hardware Architecture & Voltage Reference
 
 These breakout modules feature an onboard **TL431 precision shunt reference (2.5V)** to supply a low-noise analog voltage to the bridge excitation, effectively isolating sensitive weight measurements from digital MCU power supply noise.
@@ -18,7 +155,7 @@ The library defaults to the **External Reference** mode to match the out-of-the-
   * Enables the internal reference generator inside the CS123x chip, which drives $REFOUT$ to output $DVDD/VCC$ directly.
   * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties $REFOUT$ directly to the same $AVDD/E+$ node already driven by the onboard TL431. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On the reference modules, the TL431 shares a trace with $AVDD/E+$ that can't be isolated without PCB rework, so in practice this bridge should be left open.
 <p align="center">
-  <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
+  <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules_details.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
   <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring an onboard TL431 precision voltage reference IC.</sub>
 </p>
 
@@ -65,129 +202,6 @@ For standard **350 Ω load cells**, the recommended values are:
 >
 > Use the formulas above with the sensor's resistance and supply voltage to work out whether, and how much, R1 needs to be adjusted — keeping an eye on the current/power the TL431 would need to dissipate if the sensor were ever disconnected.
 
----
-
-## Key Features
-
-* **Dual Chip Support:** Native C++ driver for both Chipsea **CS1237** (single channel) and **CS1238** (2 differential channels) 24-bit ADCs.
-* **Full ADC Configuration:** Runtime control over PGA Gain (1x to 128x), Output Data Rate (10 Hz to 1280 Hz), Channel Selection, and Reference Source.
-* **Dual Execution Modes (Safe Blocking vs. Fast Non-Blocking):**
-  * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts and cooperative `yield()` calls preventing WatchDog Timer resets on ESP8266/ESP32 even across repeated calls (e.g. inside `readAverage()`). Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.
-  * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to register setters. Non-blocking polling can be built using `isReady()` and `forceRead()` directly in your main loop or attach a hardware interrupt on the `DOUT` pin's falling edge (data-ready signal) instead of polling `isReady()`.
-* **Internal Temperature Sensing:** Seamless temperature measurements in °C (`readTemperature()`), with automatic channel switching and gain restoration.
-* **Internal Short-Circuit Diagnostics:** Switch to the on-chip short-circuit channel (`CS123X_CH_SHORT`) to measure zero-offset drift without physically disconnecting the sensor.
-* **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`getUnits()`).
-
-> For the complete list of methods, parameters, and return values, see the fully Doxygen-documented [`CS123x.h`](https://github.com/FMazz97/CS123x/blob/main/src/CS123x.h) header.
-
-### Tested Microcontrollers:
-
-* **Arduino Uno Rev3** (ATmega328P - 5V logic)
-* **Arduino Nano** (ATmega328P - 5V logic)
-* **Arduino Mega 2560** (ATmega2560 - 5V logic)
-* **ESP32-WROOM-32** on NodeMCU-32S V1.1 (ESP32 - 3.3V logic)
-* **ESP32-WROOM-32** on the [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display) (ESP32 - 3.3V logic)
-* **ESP32-S3** on ESP32-S3-DevKitC-1 (ESP32-S3 - 3.3V logic)
-* **ESP32-C3** on ESP32-C3 SuperMini (ESP32-C3 - 3.3V logic)
-* **ESP8266** on NodeMCU V2 (ESP8266 - 3.3V logic)
-* **ESP8266** on ESP-01S (ESP8266 - 3.3V logic)
-
-> **Note:** All ESP32/ESP8266 targets above were tested using the **Arduino framework**, as declared in the library manifest, using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
-
----
-
-## Wiring & Pinout
-
-The CS123x uses a custom 2-wire serial protocol over standard digital GPIO pins.
-
-### Digital Pin Connections (MCU to ADC Module)
-
-| Pin Symbol (PCB) | Description | MCU Connection |
-| :--- | :--- | :--- |
-| **VCC / DVDD** | Digital Power Supply (2.7V – 5.5V) | MCU 3.3V or 5V |
-| **GND / DGND** | Digital Ground | MCU GND |
-| **SCK / SCLK** | Serial Clock Input / Power-Down Control | Any Digital Output Pin |
-| **DT / DOUT** | Bidirectional Data Line / Ready Signal | Any Digital GPIO Pin |
-
-### Analog Pin Connections (Module to Load Cell)
-
-| Pin Symbol (PCB) | Description | Load Cell Wire |
-| :--- | :--- | :--- |
-| **E+ / AVDD** | Bridge Excitation Voltage (+) | Red Wire ($E+$) |
-| **E- / AGND** | Analog Ground (-) | Black Wire ($E-$) / Cable shield |
-| **A+** | Channel A Non-Inverting Signal | Green / White Wire ($S+$) |
-| **A-** | Channel A Inverting Signal | White / Green Wire ($S-$) |
-| **B+ / B-** | Channel B Differential Signal *(CS1238 only)* | Second Load Cell Signal |
-
----
-
-## Motivation
-
-While the HX711 is a widely popular choice for basic static weighing applications, modern force-measurement projects often require higher sampling rates and advanced internal diagnostics.
-
-The Chipsea CS123x family bridges this gap by offering configurable output data rates up to **1280 SPS** to overcome HX711 80Hz limit, higher effective resolution (ENOB up to 20 bits), and built-in diagnostic features.
-
-This library provides a robust, production-grade C++ driver for the Arduino ecosystem, making it easy to harness the full potential of CS1237 and CS1238 ADCs in both hobbyist and industrial applications.
-
-### CS123x vs. HX711 Comparison
-
-Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors, but they target different application requirements:
-
-| Feature | HX711 | CS123x Family (CS1237 / CS1238) |
-| :--- | :--- | :--- |
-| **Max Sampling Rate** | 10 or 80 SPS | **Up to 1280 SPS** (10, 40, 640, 1280 Hz) |
-| **Effective Resolution (ENOB)** | ~18.5 Bits (at 10 Hz, Gain 128) | **Up to 20.7 Bits** (at 10 Hz, Gain 128) |
-| **Temperature Diagnostics** | None | **Integrated On-Chip Temp Sensor** |
-| **Offset Calibration Mode** | External zeroing | **Internal Short-Circuit Mode** |
-| **Target Application** | Static weighing & low-cost scales | Dynamic checkweighing, fast process control, thermal compensation |
-
-#### Key Advantages of the CS123x:
-
-* **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
-* **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
-* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
-* **Full Software Control:** PGA gain (1x, 2x, 64x, 128x) and channel selection are fully programmable on-the-fly via software registers.
-
-> **Note on Architecture & Application Scope:**
-> Like most high-resolution scale ICs, the CS123x uses a **Sigma-Delta (Σ-Δ)** architecture with a digital filter (Sinc3). This makes it ideal for strain gauge load cells in dynamic weighing, material testing, and industrial process automation.
-> For sub-millisecond impact or ballistic testing, dedicated **SAR ADCs** paired with **piezoelectric load cells** are typically required—though at a significantly higher system cost and complexity. The CS123x delivers high-speed capability for low-cost strain gauge sensors at an accessible price point.
-
----
-
-## Quick Start
-
-### Installation
-
-#### Arduino IDE
-
-**Via Library Manager (recommended):**
-Open the **Library Manager** (`Ctrl+Shift+I`), search for `CS123x`, and click **Install**.
-
-**Manual installation:**
-Download or clone this repository into your Arduino `libraries` folder
-(`Documents/Arduino/libraries/CS123x`), then restart the IDE.
-
-#### PlatformIO
-
-**Via Registry (recommended):**
-Add the library to your `platformio.ini` project configuration:
-```ini
-lib_deps =
-    CS123x
-```
-To pin a specific version (recommended for reproducible builds):
-```ini
-lib_deps =
-    CS123x@^1.0.3
-```
-
-**Manual installation:**
-Reference the repository directly in `platformio.ini`, without going through
-the registry:
-```ini
-lib_deps =
-    https://github.com/FMazz97/CS123x.git
-```
 ---
 
 ## Usage Examples
