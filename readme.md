@@ -9,15 +9,22 @@ Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=
 
 ---
 
-## Motivation
+## Why This Library?
 
-While the HX711 is a widely popular choice for basic static weighing applications, modern force-measurement projects often require higher sampling rates and advanced internal diagnostics.
+This library was born out of the need for a high-refresh-rate ADC for dynamic analysis and in-motion measurements, where the most common converters don't offer enough speed.
 
-The Chipsea CS123x family bridges this gap by offering configurable output data rates up to **1280 SPS** to overcome HX711 80Hz limit, higher effective resolution (ENOB up to 20 bits), and built-in diagnostic features.
+CS123x aims to fill that gap, providing a modern alternative to popular but slow converters like the HX711, with more flexibility, advanced diagnostics, and sampling rates up to 1280 SPS.
 
-This library provides a robust, production-grade C++ driver for the Arduino ecosystem, making it easy to harness the full potential of CS1237 and CS1238 ADCs in both hobbyist and industrial applications.
+At the time of writing, the documentation available online for the CS1237/CS1238 chips was fragmentary or incomplete, and no reliable Arduino driver existed for them.
 
-### CS123x vs. HX711 Comparison
+### Key Advantages of the CS123x:
+
+* **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
+* **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
+* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
+* **Full Software Control:** PGA gain (1x, 2x, 64x, 128x) and channel selection are fully programmable on-the-fly via software registers.
+
+### CS123x vs HX711 Comparison
 
 Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors, but they target different application requirements:
 
@@ -28,13 +35,6 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 | **Temperature Diagnostics** | None | **Integrated On-Chip Temp Sensor** |
 | **Offset Calibration Mode** | External zeroing | **Internal Short-Circuit Mode** |
 | **Target Application** | Static weighing & low-cost scales | Dynamic checkweighing, fast process control, thermal compensation |
-
-#### Key Advantages of the CS123x:
-
-* **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
-* **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
-* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
-* **Full Software Control:** PGA gain (1x, 2x, 64x, 128x) and channel selection are fully programmable on-the-fly via software registers.
 
 > **Note on Architecture & Application Scope:**
 > Like most high-resolution scale ICs, the CS123x uses a **Sigma-Delta (Σ-Δ)** architecture with a digital filter (Sinc3). This makes it ideal for strain gauge load cells in dynamic weighing, material testing, and industrial process automation.
@@ -59,22 +59,24 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 
 ## Compatibility
 
+This library is built with the **Arduino framework** API (`digitalWrite()`, `digitalRead()`, `pinMode()`, `millis()`, `yield()`) and requires no platform-specific dependencies beyond it. Any board with a working Arduino core should be supported.
+
 ### Tested Microcontrollers:
 
 Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif targets (3.3V logic):
 
 
-* **Arduino Uno Rev3** (ATmega328P - 5V logic)
-* **Arduino Nano** (ATmega328P - 5V logic)
-* **Arduino Mega 2560** (ATmega2560 - 5V logic)
-* **ESP32-WROOM-32** on NodeMCU-32S V1.1 (ESP32 - 3.3V logic)
-* **ESP32-WROOM-32** on the [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display) (ESP32 - 3.3V logic)
-* **ESP32-S3** on ESP32-S3-DevKitC-1 (ESP32-S3 - 3.3V logic)
-* **ESP32-C3** on ESP32-C3 SuperMini (ESP32-C3 - 3.3V logic)
-* **ESP8266** on NodeMCU V2 (ESP8266 - 3.3V logic)
-* **ESP8266** on ESP-01S (ESP8266 - 3.3V logic)
+* **Arduino Uno Rev3** (ATmega328P)
+* **Arduino Nano** (ATmega328P)
+* **Arduino Mega 2560** (ATmega2560)
+* **ESP32-WROOM-32** on NodeMCU-32S V1.1
+* **ESP32-WROOM-32** on the [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
+* **ESP32-S3** on ESP32-S3-DevKitC-1
+* **ESP32-C3** on ESP32-C3 SuperMini
+* **ESP8266** on NodeMCU V2
+* **ESP8266** on ESP-01S
 
-> **Note:** All ESP32/ESP8266 targets above were tested using the **Arduino framework**, as declared in the library manifest, using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
+> **Note:** All microcontrollers above were verified using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
 
 ---
 
@@ -84,34 +86,25 @@ Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif ta
 
 #### Arduino IDE
 
-**Via Library Manager (recommended):**
-Open the **Library Manager** (`Ctrl+Shift+I`), search for `CS123x`, and click **Install**.
+[![Arduino Library Manager](https://www.ardu-badge.com/badge/CS123x.svg?)](https://www.ardu-badge.com/CS123x)
 
-**Manual installation:**
-Download or clone this repository into your Arduino `libraries` folder
-(`Documents/Arduino/libraries/CS123x`), then restart the IDE.
+* **Via Library Manager (recommended):** Open the **Library Manager** (`Ctrl+Shift+I`), search for `CS123x`, and click **Install**.
+
+* **Manual installation:** Download or clone this repository into your Arduino `libraries` folder (`Documents/Arduino/libraries/CS123x`), then restart the IDE.
 
 #### PlatformIO
 
-**Via Registry (recommended):**
-Add the library to your `platformio.ini` project configuration:
+[![PlatformIO Registry](https://badges.registry.platformio.org/packages/fmazz97/library/CS123x.svg)](https://registry.platformio.org/libraries/fmazz97/CS123x)
+
+The library is published on the [PlatformIO Registry](https://registry.platformio.org/libraries/fmazz97/CS123x). Add it to your `platformio.ini` via `lib_deps`:
+
 ```ini
-lib_deps =
-    CS123x
-```
-To pin a specific version (recommended for reproducible builds):
-```ini
-lib_deps =
-    CS123x@^1.0.3
+; Pin to a specific version for reproducible builds (recommended)
+lib_deps = fmazz97/CS123x@^1.0.0
 ```
 
-**Manual installation:**
-Reference the repository directly in `platformio.ini`, without going through
-the registry:
-```ini
-lib_deps =
-    https://github.com/FMazz97/CS123x.git
-```
+> For version pinning, alternative sources (Git, local folder), and other options, see the official guide on [declaring dependencies](https://docs.platformio.org/en/latest/librarymanager/dependencies.html#declaring-dependencies).
+
 ---
 
 ## Wiring & Pinout
