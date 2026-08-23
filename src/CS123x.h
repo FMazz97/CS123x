@@ -26,7 +26,7 @@ enum CS123X_Type : uint8_t {
  * @brief Internal voltage reference configuration
  */
 enum CS123X_IntRef : uint8_t {
-    /** @brief Enable internal voltage reference generator (VREF = VDD) */
+    /** @brief Enable internal voltage reference (VREF = VDD, Default on ADC) */
     CS123X_INT_REF_ON = 0x00,
     /** @brief Disable internal voltage reference (requires external VREF) */
     CS123X_INT_REF_OFF = 0x01
@@ -64,7 +64,7 @@ enum CS123X_Rate : uint8_t {
  * @brief Input channel selection
  */
 enum CS123X_Channel : uint8_t {
-    /** @brief Input channel A (CS1237 and CS1238, Default on ADC) */
+    /** @brief Input channel A (Default on ADC) */
     CS123X_CH_A = 0x00,
     /** @brief Input channel B (CS1238 only) */
     CS123X_CH_B = 0x01,
@@ -108,7 +108,7 @@ class CS123x {
     CS123X_Gain _baseGain;    ///< Baseline PGA gain setting for normal channels
     CS123X_Rate _rate;        ///< Active data rate setting
     CS123X_Channel _channel;  ///< Currently selected input channel
-    CS123X_IntRef _refOff;    ///< Internal reference state (0x00 = ON, 0x01 = OFF)
+    CS123X_IntRef _intRef;    ///< Internal reference voltage state
 
     int32_t _offset = 0;  ///< Raw ADC zero-load offset in counts (tare value)
     float _scale = 1.0f;  ///< Scale factor (ADC counts per physical unit)
@@ -314,7 +314,7 @@ class CS123x {
 
     /// @brief Gets internal reference state (0 = ON, 1 = OFF).
     CS123X_IntRef getRef() const {
-        return _refOff;
+        return _intRef;
     }
 
     /**

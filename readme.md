@@ -1,10 +1,10 @@
-# CS123x - Arduino Library for Chipsea CS1237 & CS1238 24-bit ADCs
+# CS123x - Arduino Library for Chipsea CS1237 & CS1238 24-bit Differential ADCs
 
-Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
+Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
-  <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right).</sub>
+  <sub>Purple breakout modules for CS1237 (left) and CS1238 (right).</sub>
 </p>
 
 ---
@@ -19,6 +19,7 @@ At the time of writing, the documentation available online for the CS1237/CS1238
 
 ### Key Advantages of the CS123x:
 
+* **Precision Scale Readings:** Up to 20.7 effective bits (ENOB) for detecting small weight changes.
 * **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
 * **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
 * **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
@@ -38,13 +39,13 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 
 > **Note on Architecture & Application Scope:**
 > Like most high-resolution scale ICs, the CS123x uses a **Sigma-Delta (Σ-Δ)** architecture with a digital filter (Sinc3). This makes it ideal for strain gauge load cells in dynamic weighing, material testing, and industrial process automation.
-> For sub-millisecond impact or ballistic testing, dedicated **SAR ADCs** paired with **piezoelectric load cells** are typically required—though at a significantly higher system cost and complexity. The CS123x delivers high-speed capability for low-cost strain gauge sensors at an accessible price point.
+> For sub-millisecond impact or ballistic testing, dedicated **SAR ADCs** paired with **piezoelectric load cells** are typically required, even if it though at a significantly higher system cost and complexity. The CS123x delivers high-speed capability for low-cost strain gauge sensors at an accessible price point.
 
 ---
 
 ## Key Features
 
-* **Dual Chip Support:** Native C++ driver for both Chipsea **CS1237** (single channel) and **CS1238** (2 differential channels) 24-bit ADCs.
+* **Dual Chip Support:** Native C++ driver for both Chipsea **CS1237** (single differential channel) and **CS1238** (2 differential channels) 24-bit ADCs.
 * **Full ADC Configuration:** Runtime control over PGA Gain (1x to 128x), Output Data Rate (10 Hz to 1280 Hz), Channel Selection, and Reference Source.
 * **Dual Execution Modes (Safe Blocking vs. Fast Non-Blocking):**
   * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts and cooperative `yield()` calls preventing WatchDog Timer resets on ESP8266/ESP32 even across repeated calls (e.g. inside `readAverage()`). Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.
@@ -120,15 +121,15 @@ The CS123x uses a custom 2-wire serial protocol over standard digital GPIO pins.
 | **SCK / SCLK** | Serial Clock Input / Power-Down Control | Any Digital Output Pin |
 | **DT / DOUT** | Bidirectional Data Line / Ready Signal | Any Digital GPIO Pin |
 
-### Analog Pin Connections (Module to Load Cell)
+### Analog Pin Connections (Module to Sensor)
 
-| Pin Symbol (PCB) | Description | Load Cell Wire |
+| Pin Symbol (PCB) | Description | Sensor (Eg. Load Cell) |
 | :--- | :--- | :--- |
 | **E+ / AVDD** | Bridge Excitation Voltage (+) | Red Wire ($E+$) |
 | **E- / AGND** | Analog Ground (-) | Black Wire ($E-$) / Cable shield |
-| **A+** | Channel A Non-Inverting Signal | Green / White Wire ($S+$) |
-| **A-** | Channel A Inverting Signal | White / Green Wire ($S-$) |
-| **B+ / B-** | Channel B Differential Signal *(CS1238 only)* | Second Load Cell Signal |
+| **A+** | Channel A Non-Inverting Signal | Green Wire ($S+$) |
+| **A-** | Channel A Inverting Signal | White Wire ($S-$) |
+| **B+ / B-** | Channel B Differential Signal *(CS1238 only)* | Second Sensor Signal |
 
 ---
 
@@ -191,9 +192,9 @@ For standard **350 Ω load cells**, the recommended values are:
 
 > **Note:** Measure the input resistance across the power/excitation terminals (`AVDD/E+` <=> `AGND/E-`) with a multimeter if you are unsure of your sensor's impedance.
 >
-> **CS1238:** Channel A and Channel B share the same $AVDD/E+$ excitation rail. If using two sensors simultaneously, size the fix for their combined current draw.
+> **CS1238:** Channel A and Channel B share the same `AVDD/E+` excitation rail. If using two sensors simultaneously, size the fix for their combined current draw.
 >
-> Use the formulas above with the sensor's resistance and supply voltage to work out whether, and how much, R1 needs to be adjusted — keeping an eye on the current/power the TL431 would need to dissipate if the sensor were ever disconnected.
+> Use the formulas above with the sensor's resistance and supply voltage to work out whether, and how much, R1 needs to be adjusted. Keeping an eye on the current/power the TL431 would need to dissipate if the sensor were ever disconnected.
 
 ---
 
@@ -203,10 +204,10 @@ For standard **350 Ω load cells**, the recommended values are:
 
 The `SimpleScale` example demonstrates the typical scale workflow:
 
-1. **`begin()`** — initializes the ADC and verifies the hardware configuration.
-2. **`tare(samples)`** — zeroes the scale with the platform empty, storing the offset.
-3. **`calibrateScale(knownWeight, samples)`** — derives the scale factor from a known reference weight placed on the load cell.
-4. **`getUnits(samples)`** — continuously returns the net weight in physical units (`(raw - offset) / scale`), ready to print or log.
+1. **`begin()`**: initializes the ADC and verifies the hardware configuration.
+2. **`tare(samples)`**: zeroes the scale with the platform empty, storing the offset.
+3. **`calibrateScale(knownWeight, samples)`**: derives the scale factor from a known reference weight placed on the load cell.
+4. **`getUnits(samples)`**: continuously returns the net weight in physical units (`(raw - offset) / scale`), ready to print or log.
 
 ```cpp
 CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);

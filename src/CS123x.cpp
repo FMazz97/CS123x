@@ -78,7 +78,7 @@ CS123x::CS123x(CS123X_Type cs123xType, uint8_t dout, uint8_t sclk,
                                                                // Fallback to safe defaults if invalid parameters are provided
                                                                _baseGain((gain <= CS123X_GAIN_128) ? gain : CS123X_GAIN_128),
                                                                _rate((rate <= CS123X_RATE_1280Hz) ? rate : CS123X_RATE_10Hz),
-                                                               _refOff((intRef <= CS123X_INT_REF_OFF) ? intRef : CS123X_INT_REF_OFF) {
+                                                               _intRef((intRef <= CS123X_INT_REF_OFF) ? intRef : CS123X_INT_REF_OFF) {
     // Channel validation considering chip type
     if (channel <= CS123X_CH_SHORT) {
         if (_cs123xType == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) {
@@ -147,7 +147,7 @@ bool CS123x::setConfig(bool verify) {
     // Bit 7 -> reserved (always = 0)
     // Bit 6 -> INT_REF
     // Bit 5:4 -> RATE, Bit 3:2 -> GAIN, Bit 1:0 -> CHANNEL
-    config |= (_refOff & 0b1) << 6;
+    config |= (_intRef & 0b1) << 6;
     config |= (_rate & 0b11) << 4;
     config |= (_gain & 0b11) << 2;
     config |= (_channel & 0b11);
@@ -352,11 +352,11 @@ float CS123x::getUnits(uint8_t samples) {
 bool CS123x::setRef(CS123X_IntRef intRef, bool verify) {
     if (intRef > CS123X_INT_REF_OFF) return false;  // Reject values > 1
 
-    CS123X_IntRef currentRef = _refOff;
-    _refOff = intRef;
+    CS123X_IntRef currentRef = _intRef;
+    _intRef = intRef;
 
     if (!setConfig(verify)) {
-        _refOff = currentRef;  // Rollback
+        _intRef = currentRef;  // Rollback
         return false;
     }
     return true;
