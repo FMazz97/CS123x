@@ -77,7 +77,7 @@ Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif ta
 * **ESP8266** on NodeMCU V2
 * **ESP8266** on ESP-01S
 
-> **Note:** All microcontrollers above were verified using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
+> **Note:** All microcontrollers above were successfully tested using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
 
 ---
 
