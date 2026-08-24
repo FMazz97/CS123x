@@ -74,6 +74,14 @@ enum CS123X_Channel : uint8_t {
     CS123X_CH_SHORT = 0x03
 };
 
+/**
+ * @brief Result of a dual-channel read+config-switch operation.
+ */
+struct CS123X_DualReading {
+    int32_t valCh1;  ///< Raw ADC reading from 1st channel, or CS123X_TIMEOUT_ERROR on hardware timeout
+    int32_t valCh2;  ///< Raw ADC reading from 2nd channel, or CS123X_TIMEOUT_ERROR on hardware timeout
+};
+
 // =============================================================================
 // Hardware Constants & Sentinel Values
 // =============================================================================
@@ -86,6 +94,11 @@ constexpr int32_t CS123X_MAX_VALUE = 0x007FFFFF;
 
 /** @brief Sentinel error value returned by read() on hardware communication timeout */
 constexpr int32_t CS123X_TIMEOUT_ERROR = 0x80000000;
+
+/** @brief Sentinel error value returned when a channel-switch write/verify fails
+ *  during a combined read+switch operation (e.g. readDualChannel()).
+ */
+constexpr int32_t CS123X_SWITCH_ERROR = 0x80000001;
 
 /**
  * @brief Driver class for the CS1237 and CS1238 24-bit ADC chips.
@@ -390,10 +403,11 @@ class CS123x {
      * active channel upon completion.
      *
      * @param samples Number of ADC readings to average for noise reduction (default: 1).
+     * @param verify If true, reads back register to confirm configuration.
      * @return Temperature in °C, or `NAN` if uncalibrated (_refCode == 0), on hardware timeout,
      *         or if channel switching/restoration fails.
      */
-    float readTemperature(uint8_t samples = 1);
+    float readTemperature(uint8_t samples = 1, bool verify = true);
 };
 
 #endif /* CS123x_H */

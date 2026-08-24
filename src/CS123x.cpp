@@ -456,23 +456,23 @@ void CS123x::setTempCalibration(float refTempC, int32_t refCode) {
     _refCode = refCode;
 }
 
-float CS123x::readTemperature(uint8_t samples) {
+float CS123x::readTemperature(uint8_t samples, bool verify) {
     if (_refCode == 0) return NAN;  // Uncalibrated state _refCode = 0 shuold be at 0K, impossible
 
     CS123X_Channel previousChannel = _channel;
 
     if (previousChannel != CS123X_CH_TEMP) {
-        if (!setCh(CS123X_CH_TEMP)) return NAN;
+        if (!setCh(CS123X_CH_TEMP, verify)) return NAN;
     }
 
     int32_t rawCode = readAverage(samples);
 
     if (previousChannel != CS123X_CH_TEMP) {
-        if (!setCh(previousChannel)) return NAN;  // Fallback exit
+        if (!setCh(previousChannel, verify)) return NAN;  // Fallback exit
     }
 
     if (rawCode == CS123X_TIMEOUT_ERROR) return NAN;
 
     // B = Yb * (273.15 + Ta) / Ya - 273.15
-    return ((float)rawCode * (273.15f + _refTempC)) / (float)_refCode - 273.15f;
+    return (static_cast<float>(rawCode) * (273.15f + _refTempC)) / _refCode - 273.15f;
 }
