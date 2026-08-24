@@ -242,6 +242,14 @@ class CS123x {
     int32_t readAverage(uint8_t samples = 10);
 
     /**
+     * @brief Reads the differential input voltage.
+     * @param vRef Reference voltage in Volts (default: 2.5f to follow reference brekeout board with TL431).
+     * @param samples Number of samples to average (default: 1).
+     * @return The differential input voltage, or NAN if all reads fail.
+     */
+    float readVoltage(float vRef = 2.5f, uint8_t samples = 1);
+
+    /**
      * @brief Sets the zero point (tare) by averaging current readings at no load.
      *
      * Updates the internal offset value. Ensures that subsequent calls to

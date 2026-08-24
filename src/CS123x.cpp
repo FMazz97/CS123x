@@ -191,7 +191,7 @@ bool CS123x::setConfig(bool verify) {
             yield();  // Yield to background system tasks
         }
 
-        int32_t  readBack = getConfig();  // in case of CS123X_TIMEOUT_ERROR will be returned false
+        int32_t readBack = getConfig();  // in case of CS123X_TIMEOUT_ERROR will be returned false
         return (readBack & 0x80) && ((readBack & 0x7F) == config);
     } else
         return true;
@@ -308,6 +308,14 @@ int32_t CS123x::readAverage(uint8_t samples) {
     }
 
     return static_cast<int32_t>(sum / validCount);
+}
+
+float CS123x::readVoltage(float vRef, uint8_t samples) {
+    int32_t raw = readAverage(samples);
+    if (raw == CS123X_TIMEOUT_ERROR) return NAN;
+
+    uint32_t denom = static_cast<uint32_t>(CS123X_MAX_VALUE) * 2 * _gain;
+    return static_cast<float>(raw) * vRef / denom;
 }
 
 bool CS123x::tare(uint8_t samples) {

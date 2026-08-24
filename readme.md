@@ -193,7 +193,7 @@ For standard **350 Ω load cells**, the recommended values are:
 | DVDD/VCC Voltage | Parallel Resistor | Equivalent R1 | Available Current | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA / ~27.4mA | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
-| **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA | **5V Rail Only:** Lower quiescent power, but insufficient if running at 3.3V. |
+| **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA | **5V Rail Only:** Lower quiescent power for 5V supply rails. |
 
 > **Note:** Measure the input resistance across the power/excitation terminals (`AVDD/E+` <=> `AGND/E-`) with a multimeter if you are unsure of your sensor's impedance.
 >
