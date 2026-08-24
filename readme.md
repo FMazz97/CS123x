@@ -22,7 +22,7 @@ At the time of writing, the documentation available online for the CS1237/CS1238
 * **Precision Scale Readings:** Up to 20.7 effective bits (ENOB) for detecting small weight changes.
 * **High-Speed Dynamic Weighing:** Sampling rates up to 1280 SPS enable accurate in-motion weighing (conveyor checkweighers), rapid force tracking, and responsive closed-loop control (PID loops).
 * **Integrated Temperature Monitoring:** On-chip temperature sensor enables real-time software thermal drift compensation.
-* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the load cell.
+* **Advanced Diagnostics:** Built-in internal short mode allows precise zero-point offset calibration without disconnecting the sensor.
 * **Full Software Control:** PGA gain (1x, 2x, 64x, 128x) and channel selection are fully programmable on-the-fly via software registers.
 
 ### CS123x vs HX711 Comparison
@@ -66,16 +66,15 @@ This library is built with the **Arduino framework** API (`digitalWrite()`, `dig
 
 Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif targets (3.3V logic):
 
+* **Arduino AVR**:
+  * **ATmega328P** on [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) and [Arduino Nano](https://store.arduino.cc/collections/nano-family/products/arduino-nano)
+  * **ATmega2560** on [Arduino Mega 2560 Rev3](https://store.arduino.cc/products/arduino-mega-2560-rev3)
 
-* **Arduino Uno Rev3** (ATmega328P)
-* **Arduino Nano** (ATmega328P)
-* **Arduino Mega 2560** (ATmega2560)
-* **ESP32-WROOM-32** on NodeMCU-32S V1.1
-* **ESP32-WROOM-32** on the [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
-* **ESP32-S3** on ESP32-S3-DevKitC-1
-* **ESP32-C3** on ESP32-C3 SuperMini
-* **ESP8266** on NodeMCU V2
-* **ESP8266** on ESP-01S
+* **Espressif ESP**:
+  * **ESP32-WROOM-32** on [NodeMCU-32S V1.1](https://wiki.geekworm.com/NodeMCU-32S) and [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
+  * **ESP32-S3** on [ESP32-S3-DevKitC-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)
+  * **ESP32-C3** on [ESP32-C3 SuperMini](https://lastminuteengineers.com/esp32-c3-super-mini-pinout-reference/)
+  * **ESP8266** on [NodeMCU V2](https://wiki.geekworm.com/NodeMcu_ESP8266) and [ESP-01S](https://www.instructables.com/How-to-use-the-ESP8266-01-pins)
 
 > **Note:** All microcontrollers above were successfully tested using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
 
@@ -125,10 +124,10 @@ The CS123x uses a custom 2-wire serial protocol over standard digital GPIO pins.
 
 | Pin Symbol (PCB) | Description | Sensor (Eg. Load Cell) |
 | :--- | :--- | :--- |
-| **E+ / AVDD** | Bridge Excitation Voltage (+) | Red Wire ($E+$) |
-| **E- / AGND** | Analog Ground (-) | Black Wire ($E-$) / Cable shield |
-| **A+** | Channel A Non-Inverting Signal | Green Wire ($S+$) |
-| **A-** | Channel A Inverting Signal | White Wire ($S-$) |
+| **E+ / AVDD** | Bridge Excitation Voltage (+) | Red Wire (*E+*) |
+| **E- / AGND** | Analog Ground (-) | Black Wire (*E-*) — Cable shield |
+| **A+** | Channel A Non-Inverting Signal | Green Wire (*S+*) |
+| **A-** | Channel A Inverting Signal | White Wire (*S-*) |
 | **B+ / B-** | Channel B Differential Signal *(CS1238 only)* | Second Sensor Signal |
 
 ---
@@ -142,12 +141,12 @@ These breakout modules feature an onboard **TL431 precision shunt reference (2.5
 The library defaults to the **External Reference** mode to match the out-of-the-box hardware configuration of the reference modules shown below.
 
 * **External Reference (`CS123X_INT_REF_OFF`):**
-  * The reference modules ship with the jumper pads (**R5** on CS1237 / **R6** on CS1238) **OPEN**. In this state, the module uses the onboard TL431 to supply a clean 2.5V reference.
-  * Leaving the internal reference OFF avoids introducing unwanted noise, ripple, and measurement instability caused by two reference sources interacting on the $AVDD/E+$ line.
+  * The reference modules ship with the jumper pads (**R5** on CS1237 / **R6** on CS1238) **OPEN**. In this state, the module uses the onboard **TL431** to supply a clean **2.5V reference**.
+  * Leaving the internal reference **OFF** avoids introducing unwanted noise, ripple, and measurement instability caused by two reference sources interacting on the `AVDD/E+` line.
 
 * **Internal Reference (`CS123X_INT_REF_ON`):**
-  * Enables the internal reference generator inside the CS123x chip, which drives $REFOUT$ to output $DVDD/VCC$ directly.
-  * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties $REFOUT$ directly to the same $AVDD/E+$ node already driven by the onboard TL431. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On the reference modules, the TL431 shares a trace with $AVDD/E+$ that can't be isolated without PCB rework, so in practice this bridge should be left open.
+  * Enables the **internal reference generator** inside the **CS123x** chip, which drives `REFOUT` to output `DVDD/VCC` directly.
+  * **Not recommended on stock hardware:** Closing the **R5/R6** solder pads ties `REFOUT` directly to the same `AVDD/E+` node already driven by the onboard **TL431**. Without removing it, the two sources would actively contend on that node instead of one cleanly replacing the other. On the reference modules, the **TL431** shares a trace with `AVDD/E+` that can't be isolated without PCB rework, so in practice this bridge should be left open.
 <p align="center">
   <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules_details.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
   <sub><strong>Reference Hardware Target:</strong> Purple breakout modules for CS1237 (left) and CS1238 (right) featuring an onboard TL431 precision voltage reference IC.</sub>
@@ -155,40 +154,46 @@ The library defaults to the **External Reference** mode to match the out-of-the-
 
 ## ⚠️ Important: Current Limit for Low-Impedance Sensors
 
-The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors ($\ge 1.7\text{ k}\Omega$), it cannot supply enough current for low/medium-impedance transducers such as standard **350 Ω full-bridge load cells**.
+The onboard TL431 voltage reference is current-limited by resistor **R1 (1 kΩ)**. While sufficient for high-impedance sensors (≥ 1,7 kΩ), it cannot supply enough current for low/medium-impedance transducers such as standard **350 Ω full-bridge load cells**.
 
 ### Issue Summary
-Any sensor connected to the $AVDD/E+$ rail draws excitation current through **R1**. The reference node stays in regulation only as long as the current it can supply covers what the sensor and the TL431 itself both need:
+Any sensor connected to the `AVDD/E+` rail draws excitation current through **R1**. The reference node stays in regulation only as long as the current it can supply covers what the sensor and the **TL431** itself both need:
 
-$$I_{\text{avail}} \geq I_{\text{total}}$$
+<p align="center">
+  <i>I<sub>avail</sub> ≥ I<sub>total</sub></i>
+</p>
 
 **Current required by the sensor and the TL431's own bias:**
 
-$$I_{\text{total}} = I_{\text{sensor}} + I_{\text{bias(TL431)}} = \frac{V_{\text{REF}}}{R_{\text{sensor}}} + \sim 1\text{ mA}$$
+<p align="center">
+  <i>I<sub>total</sub> = I<sub>sensor</sub> + I<sub>bias(TL431)</sub> = V<sub>REF</sub> / R<sub>sensor</sub> + ~1 mA</i>
+</p>
 
 **Current actually available from DVDD/VCC through R1:**
 
-$$I_{\text{avail}} = \frac{V_{\text{DVDD/VCC}} - V_{\text{REF}}}{R_1}$$
+<p align="center">
+  <i>I<sub>avail</sub> = (V<sub>DVDD/VCC</sub> - V<sub>REF</sub>) / R<sub>1</sub></i>
+</p>
 
 #### Example: Standard 350 Ω Load Cell
-* **Sensor Demand:** $2.5\text{ V} / 350\ \Omega \approx 7.1\text{ mA}$
-* **Total Budget Needed:** $7.1\text{ mA} + 1.0\text{ mA} \approx \mathbf{8.1\text{ mA}}$
+* **Sensor Demand:** 2.5 V / 350 Ω ≈ **7.1 mA**
+* **Total Budget Needed:** 7.1 mA + 1.0 mA ≈ **8.1 mA**
 
-However, the stock resistor **R1 = 1 kΩ** severely restricts the available current supplied from $DVDD/VCC$:
-* **At DVDD/VCC = 3.3 V:** $I_{\text{avail}} = (3.3\text{ V} - 2.5\text{ V}) / 1\text{ k}\Omega = \mathbf{0.8\text{ mA}}$ *(insufficient)*
-* **At DVDD/VCC = 5.0 V:** $I_{\text{avail}} = (5.0\text{ V} - 2.5\text{ V}) / 1\text{ k}\Omega = \mathbf{2.5\text{ mA}}$ *(insufficient)*
+However, the stock resistor **R1 = 1 kΩ** severely restricts the available current supplied from `DVDD/VCC`:
+* **At 3.3 V:** I<sub>avail</sub> = (3.3 V - 2.5 V) / 1 kΩ = **0.8 mA** *(not enough)*
+* **At 5.0 V:** I<sub>avail</sub> = (5.0 V - 2.5 V) / 1 kΩ = **2.5 mA** *(not enough)*
 
 **Symptom:** The reference voltage collapses well below 2.5 V when a low-impedance load is connected, dropping below the CS123x minimum reference threshold (1.5 V) and causing saturated, noisy, or stuck ADC readings.
 
 ### ✅ Fix
-Lower the effective series resistance by adding a resistor between the **DVDD/VCC** and **$AVDD/E+$** nodes or soldering a resistor directly in parallel with **R1** according to the formula above.
+Lower the effective series resistance by adding a resistor between the `DVDD/VCC` and `AVDD/E+` nodes or soldering a resistor directly in parallel with **R1** according to the formula above.
 
 For standard **350 Ω load cells**, the recommended values are:
 
 | DVDD/VCC Voltage | Parallel Resistor | Equivalent R1 | Available Current | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA at 3.3V<br>~27.4mA at 5.0V | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
-| **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA at 5.0V | **5V Rail Only:** Lower quiescent power, but insufficient if running at 3.3V. |
+| **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA / ~27.4mA | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
+| **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA | **5V Rail Only:** Lower quiescent power, but insufficient if running at 3.3V. |
 
 > **Note:** Measure the input resistance across the power/excitation terminals (`AVDD/E+` <=> `AGND/E-`) with a multimeter if you are unsure of your sensor's impedance.
 >
@@ -206,7 +211,7 @@ The `SimpleScale` example demonstrates the typical scale workflow:
 
 1. **`begin()`**: initializes the ADC and verifies the hardware configuration.
 2. **`tare(samples)`**: zeroes the scale with the platform empty, storing the offset.
-3. **`calibrateScale(knownWeight, samples)`**: derives the scale factor from a known reference weight placed on the load cell.
+3. **`calibrateScale(knownWeight, samples)`**: derives the scale factor from a known reference weight placed on the weight scale or load cell.
 4. **`getUnits(samples)`**: continuously returns the net weight in physical units (`(raw - offset) / scale`), ready to print or log.
 
 ```cpp
