@@ -100,10 +100,7 @@ bool CS123x::begin() {
     initFastIO();
     powerUp();
 
-    if (readValAndWriteRegister(true) >= CS123X_TIMEOUT_ERROR)
-        return false;
-    else
-        return true;
+    return !(readValAndWriteRegister(true) >= CS123X_TIMEOUT_ERROR);
 }
 
 void CS123x::initFastIO() {
@@ -290,7 +287,7 @@ bool CS123x::setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rat
 
     _channel = channel;
     _baseGain = gain;
-	_gain = (channel == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain;
+    _gain = (channel == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain;
     _rate = rate;
 
     if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
@@ -339,6 +336,17 @@ int32_t CS123x::read() {
         yield();  // Yield to background system tasks
     }
     return forceRead();
+}
+
+CS123X_DualReading CS123x::readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2,
+                                           CS123X_Gain gainA, CS123X_Gain gainB,
+                                           bool verify = true) {
+    if (channel1 > CS123X_CH_SHORT || gainA > CS123X_GAIN_128) return {CS123X_INVALID_ERROR,0};  // Reject values > 3
+    if (channel2 > CS123X_CH_SHORT || gainB > CS123X_GAIN_128) return {0,CS123X_INVALID_ERROR};  // Reject values > 3
+
+    // Block Channel B selection on single-channel chip (CS1237)
+    if (_cs123xType == CS123X_TYPE_CS1237 && channel1 == CS123X_CH_B) return {CS123X_INVALID_ERROR,0};
+    if (_cs123xType == CS123X_TYPE_CS1237 && channel2 == CS123X_CH_B) return {0,CS123X_INVALID_ERROR};
 }
 
 int32_t CS123x::readAverage(uint8_t samples) {

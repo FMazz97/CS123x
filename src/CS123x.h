@@ -90,20 +90,13 @@ struct CS123X_Config {
 
 /**
  * @brief Result of a dual-channel read + config-switch operation.
+ * @note Each field holds a raw ADC reading, or `CS123X_TIMEOUT_ERROR`/`CS123X_SWITCH_ERROR`
+ *       on failure — in the latter case, the reading depends on an unconfirmed channel
+ *       switch and must be considered invalid.
  */
 struct CS123X_DualReading {
-    /** @brief Raw ADC reading from 1st channel, or `CS123X_TIMEOUT_ERROR` on hardware timeout,
-     *         or `CS123X_SWITCH_ERROR` if the register write couldn't be verified
-     *         (the returned reading should still be considered invalid in that case,
-     *         since the following read depends on the channel switch having succeeded).
-     */
-    int32_t Ch1;
-    /** @brief Raw ADC reading from 2nd channel, or `CS123X_TIMEOUT_ERROR` on hardware timeout,
-     *         or `CS123X_SWITCH_ERROR` if the register write couldn't be verified
-     *         (the returned reading should still be considered invalid in that case,
-     *         since the following read depends on the channel switch having succeeded).
-     */
-    int32_t Ch2;
+    int32_t ch1;  ///< Raw ADC reading from the 1st channel.
+    int32_t ch2;  ///< Raw ADC reading from the 2nd channel.
 };
 
 // =============================================================================
@@ -123,6 +116,8 @@ constexpr int32_t CS123X_TIMEOUT_ERROR = 0x7FFFFFF0;
  *  during a combined read+switch operation (e.g. readDualChannel()).
  */
 constexpr int32_t CS123X_SWITCH_ERROR = 0x7FFFFFF1;
+
+constexpr int32_t CS123X_INVALID_ERROR = 0x7FFFFFF2;
 
 // New sentinels: keep contiguous & >= CS123X_TIMEOUT_ERROR (for function(verify) path errors); below it, add separately.
 
@@ -264,13 +259,13 @@ class CS123x {
      * @param rate `CS123X_RATE_10Hz`, `CS123X_RATE_40Hz`, `CS123X_RATE_640Hz`, or `CS123X_RATE_1280Hz`.
      * @param verify If true, reads back the register to confirm configuration.
      * @return true if configuration was successfully written (and optionally verified);
-     *         false on invalid parameters, chip mismatch, or I/O failure.
+     *         false on invalid parameters, or on hardware timeout/verification failure.
      * @note If `CS123X_CH_TEMP` is selected, the PGA gain is automatically overridden to 1x (`CS123X_GAIN_1`),
-     *       while the provided `gain` parameter is saved as baseline for non-temperature channels.
-     * @note In case of write or verification failure, all internal configuration state is rolled back to previous values.
+     *        while the provided `gain` is always stored as the baseline value, restored
+     *        automatically when switching away from `CS123X_CH_TEMP`.
+     * @note On write or verification failure, all internal configuration state is rolled back to previous values.
      */
     bool setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify = true);
-
 
     /// @brief Get active configuration state.
     CS123X_Config getConfig() const {
@@ -282,7 +277,7 @@ class CS123x {
      * @param intRef `CS123X_INT_REF_ON` to enable or `CS123X_INT_REF_OFF` to disable.
      * @param verify If true, reads back register to confirm configuration.
      * @return true if configuration was successfully written (and optionally verified);
-     *         false on invalid parameters, chip mismatch, or I/O failure.
+     *         false on invalid parameters, or on hardware timeout/verification failure.
      */
     bool setRef(CS123X_IntRef intRef, bool verify = true);
 
@@ -296,7 +291,7 @@ class CS123x {
      * @param rate `CS123X_RATE_10Hz`, `CS123X_RATE_40Hz`, `CS123X_RATE_640Hz`, or `CS123X_RATE_1280Hz`.
      * @param verify If true, reads back register to confirm configuration..
      * @return true if configuration was successfully written (and optionally verified);
-     *         false on invalid parameters, chip mismatch, or I/O failure.
+     *         false on invalid parameters, or on hardware timeout/verification failure.
      */
     bool setRate(CS123X_Rate rate, bool verify = true) {
         return setConfig(_channel, _baseGain, rate, verify);
@@ -312,7 +307,7 @@ class CS123x {
      * @param gain `CS123X_GAIN_1`, `CS123X_GAIN_2`, `CS123X_GAIN_64`, or `CS123X_GAIN_128`.
      * @param verify If true, reads back register to confirm configuration..
      * @return true if configuration was successfully written (and optionally verified);
-     *         false on invalid parameters, chip mismatch, or I/O failure.
+     *         false on invalid parameters, or on hardware timeout/verification failure.
      * @note If called while `CS123X_CH_TEMP` is active, the value is saved as baseline
      *       and will be applied automatically upon returning to a standard channel.
      */
@@ -320,12 +315,18 @@ class CS123x {
         return setConfig(_channel, gain, _rate, verify);
     }
 
-    /// @brief Gets active PGA gain setting (CS123X_GAIN_...).
+    /**
+     * @brief Gets active PGA gain setting (CS123X_GAIN_...).
+     * @note Returns CS123X_GAIN_1 while CS123X_CH_TEMP is selected.
+     */
     CS123X_Gain getGain() const {
         return _gain;
     }
 
-    /// @brief Gets baseline PGA gain setting for normal channels (CS123X_GAIN_...).
+    /**
+     * @brief Gets baseline PGA gain setting for non-temperature channels (CS123X_GAIN_...).
+     * @note Equal to getGain() outside of the temperature channel.
+     */
     CS123X_Gain getBaseGain() const {
         return _baseGain;
     }
@@ -335,7 +336,7 @@ class CS123x {
      * @param channel `CS123X_CH_A`, `CS123X_CH_B` (CS1238 only), `CS123X_CH_TEMP`, or `CS123X_CH_SHORT`.
      * @param verify If true, reads back register to confirm configuration..
      * @return true if configuration was successfully written (and optionally verified);
-     *         false on invalid parameters, chip mismatch, or I/O failure.
+     *         false on invalid parameters, or on hardware timeout/verification failure.
      * @note Selecting `CS123X_CH_TEMP` automatically overrides PGA to 1x (`CS123X_GAIN_1`).
      *       Switching back to standard channels automatically restores the baseline PGA setting.
      */
@@ -370,6 +371,12 @@ class CS123x {
     // interleave reads between two channels, avoiding a wasted conversion cycle per switch.
     // Generalizes beyond dual-sensor setups: also applies to CS1237 use cases like
     // alternating A/TEMP for thermal compensation, or A/SHORT for periodic auto-zero.
+
+    CS123X_DualReading readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2, CS123X_Gain gainA, CS123X_Gain gainB, bool verify = true);
+
+    CS123X_DualReading readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2, bool verify = true) {
+        return readDualChannel(channel1, channel2, _baseGain, _baseGain, verify);
+    }
 
     /**
      * @brief Reads multiple raw samples and returns their arithmetic mean.
