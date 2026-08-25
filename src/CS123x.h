@@ -157,7 +157,7 @@ class CS123x {
 
     /**
      * @brief Reads the configuration register from the ADC.
-     * @return Raw configuration byte read from chip (Bit 7 contains the update flag).
+     * @return Raw configuration byte read from chip (Bit 0-6) and the update flag (Bit 7).
      */
     int32_t readRegister();
 
@@ -345,14 +345,30 @@ class CS123x {
     }
 
     /**
+     * @brief Configures channel, PGA gain, and sample rate in a single operation.
+     *
+     * @param channel `CS123X_CH_A`, `CS123X_CH_B` (CS1238 only), `CS123X_CH_TEMP`, or `CS123X_CH_SHORT`.
+     * @param gain `CS123X_GAIN_1`, `CS123X_GAIN_2`, `CS123X_GAIN_64`, or `CS123X_GAIN_128`.
+     * @param rate `CS123X_RATE_10Hz`, `CS123X_RATE_40Hz`, `CS123X_RATE_640Hz`, or `CS123X_RATE_1280Hz`.
+     * @param verify If true, reads back the register to confirm configuration.
+     * @return true if configuration was successfully written (and optionally verified);
+     *         false on invalid parameters, chip mismatch, or I/O failure.
+     * @note If `CS123X_CH_TEMP` is selected, the PGA gain is automatically overridden to 1x (`CS123X_GAIN_1`),
+     *       while the provided `gain` parameter is saved as baseline for non-temperature channels.
+     * @note In case of write or verification failure, all internal configuration state is rolled back to previous values.
+     */
+    bool setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify = true);
+
+    /**
      * @brief Configures internal voltage reference generator.
      * @param intRef `CS123X_INT_REF_ON` to enable or `CS123X_INT_REF_OFF` to disable.
      * @param verify If true, reads back register to confirm configuration.
-     * @return true if successful, false otherwise.
+     * @return true if configuration was successfully written (and optionally verified);
+     *         false on invalid parameters, chip mismatch, or I/O failure.
      */
     bool setRef(CS123X_IntRef intRef, bool verify = true);
 
-    /// @brief Gets internal reference state (0 = ON, 1 = OFF).
+    /// @brief Gets internal reference state (CS123X_INT_REF_...).
     CS123X_IntRef getRef() const {
         return _intRef;
     }
@@ -360,10 +376,13 @@ class CS123x {
     /**
      * @brief Sets the Output Data Rate (ODR).
      * @param rate `CS123X_RATE_10Hz`, `CS123X_RATE_40Hz`, `CS123X_RATE_640Hz`, or `CS123X_RATE_1280Hz`.
-     * @param verify If true, reads back register to confirm configuration.
-     * @return true if successful, false otherwise.
+     * @param verify If true, reads back register to confirm configuration..
+     * @return true if configuration was successfully written (and optionally verified);
+     *         false on invalid parameters, chip mismatch, or I/O failure.
      */
-    bool setRate(CS123X_Rate rate, bool verify = true);
+    bool setRate(CS123X_Rate rate, bool verify = true) {
+        return setConfig(_channel, _baseGain, rate, verify);
+    }
 
     /// @brief Gets active data rate setting (CS123X_RATE_...).
     CS123X_Rate getRate() const {
@@ -373,27 +392,38 @@ class CS123x {
     /**
      * @brief Configures the Programmable Gain Amplifier (PGA).
      * @param gain `CS123X_GAIN_1`, `CS123X_GAIN_2`, `CS123X_GAIN_64`, or `CS123X_GAIN_128`.
-     * @param verify If true, reads back register to confirm configuration.
-     * @return true if successfully configured, false if gain value is out of bounds.
+     * @param verify If true, reads back register to confirm configuration..
+     * @return true if configuration was successfully written (and optionally verified);
+     *         false on invalid parameters, chip mismatch, or I/O failure.
      * @note If called while `CS123X_CH_TEMP` is active, the value is saved as baseline
      *       and will be applied automatically upon returning to a standard channel.
      */
-    bool setGain(CS123X_Gain gain, bool verify = true);
+    bool setGain(CS123X_Gain gain, bool verify = true) {
+        return setConfig(_channel, gain, _rate, verify);
+    }
 
     /// @brief Gets active PGA gain setting (CS123X_GAIN_...).
     CS123X_Gain getGain() const {
         return _gain;
     }
 
+    /// @brief Gets baseline PGA gain setting for normal channels (CS123X_GAIN_...).
+    CS123X_Gain getBaseGain() const {
+        return _baseGain;
+    }
+
     /**
      * @brief Selects the active analog input channel.
      * @param channel `CS123X_CH_A`, `CS123X_CH_B` (CS1238 only), `CS123X_CH_TEMP`, or `CS123X_CH_SHORT`.
-     * @param verify If true, reads back register to confirm configuration.
-     * @return true if channel was set successfully, false if invalid or unsupported by chip model.
+     * @param verify If true, reads back register to confirm configuration..
+     * @return true if configuration was successfully written (and optionally verified);
+     *         false on invalid parameters, chip mismatch, or I/O failure.
      * @note Selecting `CS123X_CH_TEMP` automatically overrides PGA to 1x (`CS123X_GAIN_1`).
      *       Switching back to standard channels automatically restores the baseline PGA setting.
      */
-    bool setCh(CS123X_Channel channel, bool verify = true);
+    bool setCh(CS123X_Channel channel, bool verify = true) {
+        return setConfig(channel, _baseGain, _rate, verify);
+    }
 
     /// @brief Gets currently selected input channel (CS123X_CH_...).
     CS123X_Channel getCh() const {

@@ -369,6 +369,36 @@ float CS123x::getUnits(uint8_t samples) {
     return static_cast<float>(val) / _scale;
 }
 
+bool CS123x::setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify) {
+    if (channel > CS123X_CH_SHORT) return false;  // Reject values > 3
+    if (gain > CS123X_GAIN_128) return false;     // Reject values > 3
+    if (rate > CS123X_RATE_1280Hz) return false;  // Reject values > 3
+
+    // Block Channel B selection on single-channel chip (CS1237)
+    if (_cs123xType == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) return false;
+
+    // Backups value for rollback
+    CS123X_Channel currentChannel = _channel;
+    CS123X_Gain currentGain = _gain;
+    CS123X_Gain currentBaseGain = _baseGain;
+    CS123X_Rate currentRate = _rate;
+
+    _channel = channel;
+    _baseGain = gain;
+	_gain = (channel == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain;
+    _rate = rate;
+
+    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
+        // Rollback to previuos value in case of fail readback
+        _channel = currentChannel;
+        _gain = currentGain;
+        _baseGain = currentBaseGain;
+        _rate = currentRate;
+        return false;
+    }
+    return true;
+}
+
 bool CS123x::setRef(CS123X_IntRef intRef, bool verify) {
     if (intRef > CS123X_INT_REF_OFF) return false;  // Reject values > 1
 
@@ -377,67 +407,6 @@ bool CS123x::setRef(CS123X_IntRef intRef, bool verify) {
 
     if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
         _intRef = currentRef;  // Rollback
-        return false;
-    }
-    return true;
-}
-
-bool CS123x::setRate(CS123X_Rate rate, bool verify) {
-    if (rate > CS123X_RATE_1280Hz) return false;  // Reject values > 3
-
-    CS123X_Rate currentRate = _rate;
-    _rate = rate;
-
-    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
-        _rate = currentRate;  // Rollback
-        return false;
-    }
-    return true;
-}
-
-bool CS123x::setGain(CS123X_Gain gain, bool verify) {
-    if (gain > CS123X_GAIN_128) return false;  // Reject values > 3
-
-    CS123X_Gain currentBaseGain = _baseGain;  // Backup
-    CS123X_Gain currentGain = _gain;
-
-    _baseGain = gain;
-
-    // Fix gain = 1 for if on-chip temperature sensor was enabled
-    if (_channel == CS123X_CH_TEMP)
-        _gain = CS123X_GAIN_1;
-    else
-        _gain = gain;
-
-    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
-        _baseGain = currentBaseGain;  // Rollback
-        _gain = currentGain;
-        return false;
-    }
-    return true;
-}
-
-bool CS123x::setCh(CS123X_Channel channel, bool verify) {
-    if (channel > CS123X_CH_SHORT) return false;  // Check basic limit (0-3)
-
-    // Block Channel B selection on single-channel chip (CS1237)
-    if (_cs123xType == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) return false;
-
-    CS123X_Channel currentChannel = _channel;  // Backup
-    CS123X_Gain currentGain = _gain;
-
-    // Fix gain for on-chip temperature sensor
-    if (channel == CS123X_CH_TEMP) {
-        _gain = CS123X_GAIN_1;
-    } else if (_channel == CS123X_CH_TEMP) {
-        _gain = _baseGain;  // Restore gain selection for other channel
-    }
-
-    _channel = channel;
-
-    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
-        _channel = currentChannel;  // Rollback
-        _gain = currentGain;
         return false;
     }
     return true;
