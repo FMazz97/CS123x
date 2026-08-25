@@ -129,21 +129,6 @@ bool CS123x::isReady() const {
     return !digitalRead(_dout);
 }
 
-int32_t CS123x::forceRead() {
-    int32_t value = 0;
-    CS123X_ENTER_CRITICAL();
-
-    value = readBits(24);
-    voidPulses(3);
-
-    CS123X_EXIT_CRITICAL();
-
-    // fix negative value from 24 to 32 bit
-    if (value & 0x800000) value |= 0xFF000000;
-
-    return value;
-}
-
 int32_t CS123x::readValAndWriteRegister(bool verify) {
     int32_t value = 0;
     uint8_t config = 0x00;
@@ -289,6 +274,64 @@ uint32_t CS123x::getTimeoutMs() const {
     return timeouts[_rate & 0x03];
 }
 
+bool CS123x::setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify) {
+    if (channel > CS123X_CH_SHORT) return false;  // Reject values > 3
+    if (gain > CS123X_GAIN_128) return false;     // Reject values > 3
+    if (rate > CS123X_RATE_1280Hz) return false;  // Reject values > 3
+
+    // Block Channel B selection on single-channel chip (CS1237)
+    if (_cs123xType == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) return false;
+
+    // Backups value for rollback
+    CS123X_Channel currentChannel = _channel;
+    CS123X_Gain currentGain = _gain;
+    CS123X_Gain currentBaseGain = _baseGain;
+    CS123X_Rate currentRate = _rate;
+
+    _channel = channel;
+    _baseGain = gain;
+	_gain = (channel == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain;
+    _rate = rate;
+
+    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
+        // Rollback to previuos value in case of fail readback
+        _channel = currentChannel;
+        _gain = currentGain;
+        _baseGain = currentBaseGain;
+        _rate = currentRate;
+        return false;
+    }
+    return true;
+}
+
+bool CS123x::setRef(CS123X_IntRef intRef, bool verify) {
+    if (intRef > CS123X_INT_REF_OFF) return false;  // Reject values > 1
+
+    CS123X_IntRef currentRef = _intRef;
+    _intRef = intRef;
+
+    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
+        _intRef = currentRef;  // Rollback
+        return false;
+    }
+    return true;
+}
+
+int32_t CS123x::forceRead() {
+    int32_t value = 0;
+    CS123X_ENTER_CRITICAL();
+
+    value = readBits(24);
+    voidPulses(3);
+
+    CS123X_EXIT_CRITICAL();
+
+    // fix negative value from 24 to 32 bit
+    if (value & 0x800000) value |= 0xFF000000;
+
+    return value;
+}
+
 int32_t CS123x::read() {
     uint32_t start = millis();
     while (!isReady()) {
@@ -367,49 +410,6 @@ float CS123x::getUnits(uint8_t samples) {
     if (val == CS123X_TIMEOUT_ERROR) return NAN;
 
     return static_cast<float>(val) / _scale;
-}
-
-bool CS123x::setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify) {
-    if (channel > CS123X_CH_SHORT) return false;  // Reject values > 3
-    if (gain > CS123X_GAIN_128) return false;     // Reject values > 3
-    if (rate > CS123X_RATE_1280Hz) return false;  // Reject values > 3
-
-    // Block Channel B selection on single-channel chip (CS1237)
-    if (_cs123xType == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) return false;
-
-    // Backups value for rollback
-    CS123X_Channel currentChannel = _channel;
-    CS123X_Gain currentGain = _gain;
-    CS123X_Gain currentBaseGain = _baseGain;
-    CS123X_Rate currentRate = _rate;
-
-    _channel = channel;
-    _baseGain = gain;
-	_gain = (channel == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain;
-    _rate = rate;
-
-    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
-        // Rollback to previuos value in case of fail readback
-        _channel = currentChannel;
-        _gain = currentGain;
-        _baseGain = currentBaseGain;
-        _rate = currentRate;
-        return false;
-    }
-    return true;
-}
-
-bool CS123x::setRef(CS123X_IntRef intRef, bool verify) {
-    if (intRef > CS123X_INT_REF_OFF) return false;  // Reject values > 1
-
-    CS123X_IntRef currentRef = _intRef;
-    _intRef = intRef;
-
-    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
-        _intRef = currentRef;  // Rollback
-        return false;
-    }
-    return true;
 }
 
 bool CS123x::setTempCalibration(float refTempC) {
