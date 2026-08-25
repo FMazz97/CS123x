@@ -74,6 +74,13 @@ enum CS123X_Channel : uint8_t {
     CS123X_CH_SHORT = 0x03
 };
 
+struct CS123X_Config {
+    CS123X_Rate rate;
+    CS123X_Gain gain;
+    CS123X_Channel channel;
+    CS123X_IntRef intRef;
+};
+
 /**
  * @brief Result of a dual-channel read+config-switch operation.
  */
@@ -93,12 +100,18 @@ constexpr int32_t CS123X_MIN_VALUE = 0xFF800000;
 constexpr int32_t CS123X_MAX_VALUE = 0x007FFFFF;
 
 /** @brief Sentinel error value returned by read() on hardware communication timeout */
-constexpr int32_t CS123X_TIMEOUT_ERROR = 0x80000000;
+constexpr int32_t CS123X_TIMEOUT_ERROR = 0x7FFFFFF0;
 
 /** @brief Sentinel error value returned when a channel-switch write/verify fails
  *  during a combined read+switch operation (e.g. readDualChannel()).
  */
-constexpr int32_t CS123X_SWITCH_ERROR = 0x80000001;
+constexpr int32_t CS123X_SWITCH_ERROR = 0x7FFFFFF1;
+
+// New sentinels: keep contiguous & >= CS123X_TIMEOUT_ERROR (for function(verify) path errors); below it, add separately.
+
+// =============================================================================
+// Class definition
+// =============================================================================
 
 /**
  * @brief Driver class for the CS1237 and CS1238 24-bit ADC chips.
@@ -130,17 +143,23 @@ class CS123x {
     int32_t _refCode = 0;     ///< Raw ADC code recorded at reference temperature (0 = uncalibrated)
 
     /**
-     * @brief Writes the configuration byte to the internal ADC register.
-     * @param verify If true, reads back the register to verify successful write.
-     * @return true if configuration was successfully written (and verified), false on error/timeout.
+     * @brief Reads the raw ADC value from the currently active channel, then writes
+     *        a new configuration byte to the internal ADC register in the same
+     *        bit-bang transaction for next reading process.
+     * @param verify If true, reads back the register after writing to verify success.
+     * @return Signed 32-bit integer (`int32_t`) sign-extended from 24-bit ADC data on
+     *         success, `CS123X_TIMEOUT_ERROR` if the chip didn't respond in time, or
+     *         `CS123X_SWITCH_ERROR` if the register write couldn't be verified
+     *         (the returned reading should still be considered invalid in that case,
+     *         since the following read depends on the channel switch having succeeded).
      */
-    bool setConfig(bool verify = true);
+    int32_t readValAndWriteRegister(bool verify = true);
 
     /**
      * @brief Reads the configuration register from the ADC.
      * @return Raw configuration byte read from chip (Bit 7 contains the update flag).
      */
-    int32_t getConfig();
+    int32_t readRegister();
 
     /**
      * @brief Reads a specified number of bits over the 2-wire serial protocol.

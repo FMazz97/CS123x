@@ -100,7 +100,10 @@ bool CS123x::begin() {
     initFastIO();
     powerUp();
 
-    return setConfig(true);
+    if (readValAndWriteRegister(true) >= CS123X_TIMEOUT_ERROR)
+        return false;
+    else
+        return true;
 }
 
 void CS123x::initFastIO() {
@@ -141,7 +144,8 @@ int32_t CS123x::forceRead() {
     return value;
 }
 
-bool CS123x::setConfig(bool verify) {
+int32_t CS123x::readValAndWriteRegister(bool verify) {
+    int32_t value = 0;
     uint8_t config = 0x00;
     // built config byte
     // Bit 7 -> reserved (always = 0)
@@ -154,15 +158,15 @@ bool CS123x::setConfig(bool verify) {
 
     uint32_t start = millis();
     while (!isReady()) {
-        if (millis() - start >= getTimeoutMs()) return false;
+        if (millis() - start >= getTimeoutMs()) return CS123X_TIMEOUT_ERROR;
         yield();  // Yield to background system tasks
     }
 
     // Avoid interruption during critical stage
     CS123X_ENTER_CRITICAL();
 
-    voidPulses(24);  // bit 1-24, no conversion acquisition
-    voidPulses(3);   // bit 25-27, no previously update acquisition
+    value = readBits(24);  // bit 1-24
+    voidPulses(3);         // bit 25-27, no previously update acquisition
 
     voidPulses(2);  // bit 28-29
 
@@ -179,25 +183,33 @@ bool CS123x::setConfig(bool verify) {
 
     CS123X_EXIT_CRITICAL();
 
+    // fix negative value from 24 to 32 bit
+    if (value & 0x800000) value |= 0xFF000000;
+
     if (verify) {
         uint32_t start = millis();
         while (isReady()) {
-            if (millis() - start >= getTimeoutMs()) return false;
+            if (millis() - start >= getTimeoutMs()) return CS123X_SWITCH_ERROR;
             yield();  // Yield to background system tasks.
         }
         start = millis();
         while (!isReady()) {
-            if (millis() - start >= getTimeoutMs()) return false;
+            if (millis() - start >= getTimeoutMs()) return CS123X_SWITCH_ERROR;
             yield();  // Yield to background system tasks
         }
 
-        int32_t readBack = getConfig();  // in case of CS123X_TIMEOUT_ERROR will be returned false
-        return (readBack & 0x80) && ((readBack & 0x7F) == config);
+        int32_t readBack = readRegister();
+        if (readBack >= CS123X_TIMEOUT_ERROR)
+            return CS123X_SWITCH_ERROR;
+        else if ((readBack & 0x80) && ((readBack & 0x7F) == config))
+            return value;
+        else
+            return CS123X_SWITCH_ERROR;
     } else
-        return true;
+        return value;
 }
 
-int32_t CS123x::getConfig() {
+int32_t CS123x::readRegister() {
     bool update = false;
     uint8_t config = 0;
 
@@ -363,7 +375,7 @@ bool CS123x::setRef(CS123X_IntRef intRef, bool verify) {
     CS123X_IntRef currentRef = _intRef;
     _intRef = intRef;
 
-    if (!setConfig(verify)) {
+    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
         _intRef = currentRef;  // Rollback
         return false;
     }
@@ -376,7 +388,7 @@ bool CS123x::setRate(CS123X_Rate rate, bool verify) {
     CS123X_Rate currentRate = _rate;
     _rate = rate;
 
-    if (!setConfig(verify)) {
+    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
         _rate = currentRate;  // Rollback
         return false;
     }
@@ -397,7 +409,7 @@ bool CS123x::setGain(CS123X_Gain gain, bool verify) {
     else
         _gain = gain;
 
-    if (!setConfig(verify)) {
+    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
         _baseGain = currentBaseGain;  // Rollback
         _gain = currentGain;
         return false;
@@ -423,7 +435,7 @@ bool CS123x::setCh(CS123X_Channel channel, bool verify) {
 
     _channel = channel;
 
-    if (!setConfig(verify)) {
+    if (readValAndWriteRegister(verify) >= CS123X_TIMEOUT_ERROR) {
         _channel = currentChannel;  // Rollback
         _gain = currentGain;
         return false;
