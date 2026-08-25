@@ -13,7 +13,7 @@
 #include <Arduino.h>
 
 /**
- * @brief CS123X ADC model type
+ * @brief CS123X ADC model type.
  */
 enum CS123X_Type : uint8_t {
     /** @brief CS1237 ADC model (single differential channel) */
@@ -23,7 +23,7 @@ enum CS123X_Type : uint8_t {
 };
 
 /**
- * @brief Internal voltage reference configuration
+ * @brief Internal voltage reference configuration.
  */
 enum CS123X_IntRef : uint8_t {
     /** @brief Enable internal voltage reference (VREF = VDD, Default on ADC) */
@@ -33,7 +33,7 @@ enum CS123X_IntRef : uint8_t {
 };
 
 /**
- * @brief Programmable Gain Amplifier (PGA) selection
+ * @brief Programmable Gain Amplifier (PGA) selection.
  */
 enum CS123X_Gain : uint8_t {
     /** @brief Programmable Gain Amplifier (PGA) = 1x */
@@ -47,7 +47,7 @@ enum CS123X_Gain : uint8_t {
 };
 
 /**
- * @brief Data output rate selection
+ * @brief Data output rate selection.
  */
 enum CS123X_Rate : uint8_t {
     /** @brief Data output rate 10 Hz (Default on ADC) */
@@ -61,7 +61,7 @@ enum CS123X_Rate : uint8_t {
 };
 
 /**
- * @brief Input channel selection
+ * @brief Input channel selection.
  */
 enum CS123X_Channel : uint8_t {
     /** @brief Input channel A (Default on ADC) */
@@ -74,19 +74,36 @@ enum CS123X_Channel : uint8_t {
     CS123X_CH_SHORT = 0x03
 };
 
+/**
+ * @brief Complete internal configuration.
+ */
 struct CS123X_Config {
+    /** @brief Input channel selection*/
     CS123X_Channel channel;
+    /** @brief Programmable Gain Amplifier (PGA) selection. */
     CS123X_Gain gain;
+    /** @brief Data output rate selection*/
     CS123X_Rate rate;
+    /** @brief Internal voltage reference configuration. */
     CS123X_IntRef intRef;
 };
 
 /**
- * @brief Result of a dual-channel read+config-switch operation.
+ * @brief Result of a dual-channel read + config-switch operation.
  */
 struct CS123X_DualReading {
-    int32_t valCh1;  ///< Raw ADC reading from 1st channel, or CS123X_TIMEOUT_ERROR on hardware timeout
-    int32_t valCh2;  ///< Raw ADC reading from 2nd channel, or CS123X_TIMEOUT_ERROR on hardware timeout
+    /** @brief Raw ADC reading from 1st channel, or `CS123X_TIMEOUT_ERROR` on hardware timeout,
+     *         or `CS123X_SWITCH_ERROR` if the register write couldn't be verified
+     *         (the returned reading should still be considered invalid in that case,
+     *         since the following read depends on the channel switch having succeeded).
+     */
+    int32_t Ch1;
+    /** @brief Raw ADC reading from 2nd channel, or `CS123X_TIMEOUT_ERROR` on hardware timeout,
+     *         or `CS123X_SWITCH_ERROR` if the register write couldn't be verified
+     *         (the returned reading should still be considered invalid in that case,
+     *         since the following read depends on the channel switch having succeeded).
+     */
+    int32_t Ch2;
 };
 
 // =============================================================================
