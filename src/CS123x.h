@@ -86,6 +86,16 @@ struct CS123X_Config {
     CS123X_Rate rate;
     /** @brief Internal voltage reference configuration. */
     CS123X_IntRef intRef;
+
+    /// Compares two configurations for equality.
+    bool operator==(const CS123X_Config& config) const {
+        return channel == config.channel && gain == config.gain && rate == config.rate && intRef == config.intRef;
+    }
+
+    /// Compares two configurations for inequality.
+    bool operator!=(const CS123X_Config& config) const {
+        return channel != config.channel || gain != config.gain || rate != config.rate || intRef != config.intRef;
+    }
 };
 
 /**
@@ -97,6 +107,16 @@ struct CS123X_Config {
 struct CS123X_DualReading {
     int32_t ch1;  ///< Raw ADC reading from the 1st channel.
     int32_t ch2;  ///< Raw ADC reading from the 2nd channel.
+
+    /// Compares two dual-channel readings for equality.
+    bool operator==(const CS123X_DualReading& dualReading) const {
+        return ch1 == dualReading.ch1 && ch2 == dualReading.ch2;
+    }
+
+    /// Compares two dual-channel readings for inequality.
+    bool operator!=(const CS123X_DualReading& dualReading) const {
+        return ch1 != dualReading.ch1 || ch2 != dualReading.ch2;
+    }
 };
 
 // =============================================================================
@@ -117,7 +137,11 @@ constexpr int32_t CS123X_TIMEOUT_ERROR = 0x7FFFFFF0;
  */
 constexpr int32_t CS123X_SWITCH_ERROR = 0x7FFFFFF1;
 
-constexpr int32_t CS123X_INVALID_ERROR = 0x7FFFFFF2;
+/** @brief Sentinel error value returned when one or more parameters passed to
+ *  a configuration call are invalid (e.g. readDualChannel()).
+ *  No hardware communication is attempted in this case.
+ */
+constexpr int32_t CS123X_INVALID_PARAM = 0x7FFFFFF2;
 
 // New sentinels: keep contiguous & >= CS123X_TIMEOUT_ERROR (for function(verify) path errors); below it, add separately.
 
@@ -261,13 +285,27 @@ class CS123x {
      * @return true if configuration was successfully written (and optionally verified);
      *         false on invalid parameters, or on hardware timeout/verification failure.
      * @note If `CS123X_CH_TEMP` is selected, the PGA gain is automatically overridden to 1x (`CS123X_GAIN_1`),
-     *        while the provided `gain` is always stored as the baseline value, restored
-     *        automatically when switching away from `CS123X_CH_TEMP`.
+     *        while the provided `gain` is always stored as the baseline value,
+     *        restored automatically when switching away from `CS123X_CH_TEMP`.
      * @note On write or verification failure, all internal configuration state is rolled back to previous values.
      */
     bool setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify = true);
 
-    /// @brief Get active configuration state.
+    /**
+     * @brief Convenience overload of `setConfig` usign a `CS123X_Config` struct
+     * @param config `CS123X_Config` struct witch contain desidered `CS123X_CH_...`,
+     *        `CS123X_GAIN_...` and `CS123X_RATE_...`.
+     * @param verify If true, reads back the register to confirm configuration.
+     * @see setConfig(CS123X_Channel, CS123X_Gain, CS123X_Rate, bool)
+     */
+    bool setConfig(CS123X_Config config, bool verify = true) {
+        return setConfig(config.channel, config.gain, config.rate, verify);
+    }
+
+    /**
+     * @brief Get active configuration state.
+     * @return `CS123X_Config` struct with current `CS123X_CH_`, `CS123X_GAIN_`, `CS123X_RATE_` and `CS123X_INT_REF_`.
+     */
     CS123X_Config getConfig() const {
         return {_channel, _gain, _rate, _intRef};
     }
@@ -367,15 +405,58 @@ class CS123x {
      */
     int32_t read();
 
-    // TODO: implement readDualChannel(CS123X_Channel chA, CS123X_Channel chB) for CS1238
-    // interleave reads between two channels, avoiding a wasted conversion cycle per switch.
-    // Generalizes beyond dual-sensor setups: also applies to CS1237 use cases like
-    // alternating A/TEMP for thermal compensation, or A/SHORT for periodic auto-zero.
+    /**
+     * @brief Reads both channels of a dual-channel measurement, interleaving each
+     *        read with the register write for the next channel switch, avoiding a
+     *        wasted conversion cycle per switch, unlike calling read() and setCh()
+     *        separately.
+     *
+     * Generalizes beyond CS1238 dual-sensor setups: also applies to CS1237 use
+     * cases like alternating `CS123X_CH_A`/`CS123X_CH_TEMP` for thermal
+     * compensation, or `CS123X_CH_A`/`CS123X_CH_SHORT` for periodic auto-zero.
+     *
+     * @param channel1 First channel to read (also the channel the chip is left on at the end of the call).
+     * @param channel2 Second channel to read.
+     * @param gain1 PGA gain for `channel1`. Overridden to `CS123X_GAIN_1` if `channel1` is `CS123X_CH_TEMP`.
+     * @param gain2 PGA gain for `channel2`. Overridden to `CS123X_GAIN_1` if `channel2` is `CS123X_CH_TEMP`.
+     * @param verify If true, reads back the register after each channel switch to confirm success.
+     *
+     * @return A `CS123X_DualReading` with one raw ADC reading per channel. Each
+     *         field holds `CS123X_INVALID_PARAM` if its channel/gain pair was
+     *         invalid (no hardware communication attempted), `CS123X_TIMEOUT_ERROR`
+     *         on hardware timeout, or `CS123X_SWITCH_ERROR` if a channel switch
+     *         wasn't confirmed — in the latter two cases the reading depends on an
+     *         unconfirmed/failed switch and must be considered invalid.
+     * @note Rejects `CS123X_CH_B` on a CS1237 (single-channel chip) for either parameter.
+     */
+    CS123X_DualReading readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2,
+                                       CS123X_Gain gain1, CS123X_Gain gain2, bool verify = true);
 
-    CS123X_DualReading readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2, CS123X_Gain gainA, CS123X_Gain gainB, bool verify = true);
-
+    /**
+     * @brief Convenience overload of readDualChannel() using the current baseline gain (`_baseGain`) for both channels.
+     * @see readDualChannel(CS123X_Channel, CS123X_Channel, CS123X_Gain, CS123X_Gain, bool)
+     */
     CS123X_DualReading readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2, bool verify = true) {
         return readDualChannel(channel1, channel2, _baseGain, _baseGain, verify);
+    }
+
+    /**
+     * @brief Convenience overload of readDualChannel() using the current (`_channel`) and baseline gain
+     *        (`_baseGain`) as the first channel.
+     * @see readDualChannel(CS123X_Channel, CS123X_Channel, CS123X_Gain, CS123X_Gain, bool)
+     */
+    CS123X_DualReading readDualChannel(CS123X_Channel channel2, CS123X_Gain gain2, bool verify = true) {
+        return readDualChannel(_channel, channel2, _baseGain, gain2, verify);
+    }
+
+    /**
+     * @brief Convenience overload of readDualChannel() using the current channel
+     *        and baseline gain (`_channel`, `_baseGain`) for the first channel and the
+     *        current baseline gain (`_baseGain`) for the second.
+     * @see readDualChannel(CS123X_Channel, CS123X_Channel, CS123X_Gain, CS123X_Gain, bool)
+     */
+    CS123X_DualReading readDualChannel(CS123X_Channel channel2, bool verify = true) {
+        return readDualChannel(_channel, channel2, _baseGain, _baseGain, verify);
     }
 
     /**

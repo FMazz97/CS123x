@@ -339,14 +339,62 @@ int32_t CS123x::read() {
 }
 
 CS123X_DualReading CS123x::readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2,
-                                           CS123X_Gain gainA, CS123X_Gain gainB,
-                                           bool verify = true) {
-    if (channel1 > CS123X_CH_SHORT || gainA > CS123X_GAIN_128) return {CS123X_INVALID_ERROR,0};  // Reject values > 3
-    if (channel2 > CS123X_CH_SHORT || gainB > CS123X_GAIN_128) return {0,CS123X_INVALID_ERROR};  // Reject values > 3
+                                           CS123X_Gain gain1, CS123X_Gain gain2,
+                                           bool verify) {
+    bool ch1Invalid = (channel1 > CS123X_CH_SHORT) || (gain1 > CS123X_GAIN_128) ||
+                      (_cs123xType == CS123X_TYPE_CS1237 && channel1 == CS123X_CH_B);
 
-    // Block Channel B selection on single-channel chip (CS1237)
-    if (_cs123xType == CS123X_TYPE_CS1237 && channel1 == CS123X_CH_B) return {CS123X_INVALID_ERROR,0};
-    if (_cs123xType == CS123X_TYPE_CS1237 && channel2 == CS123X_CH_B) return {0,CS123X_INVALID_ERROR};
+    bool ch2Invalid = (channel2 > CS123X_CH_SHORT) || (gain2 > CS123X_GAIN_128) ||
+                      (_cs123xType == CS123X_TYPE_CS1237 && channel2 == CS123X_CH_B);
+    if (ch1Invalid || ch2Invalid) {
+        return {
+            ch1Invalid ? CS123X_INVALID_PARAM : 0,
+            ch2Invalid ? CS123X_INVALID_PARAM : 0};
+    }
+
+    if (channel1 == CS123X_CH_TEMP) gain1 = CS123X_GAIN_1;
+    if (channel2 == CS123X_CH_TEMP) gain2 = CS123X_GAIN_1;
+
+    // ensure correct configuration was applied
+    if (_channel != channel1 || _baseGain != gain1) {
+        if (!setConfig(channel1, gain1, _rate, verify)) {
+            return {CS123X_SWITCH_ERROR, CS123X_SWITCH_ERROR};
+        }
+    }
+
+    // Backups value for rollback
+    CS123X_Channel currentChannel = _channel;
+    CS123X_Gain currentGain = _gain;
+
+    // Prapare configuration for swtich channel after reading
+    _channel = channel2;
+    _gain = gain2;
+
+    CS123X_DualReading result;
+    result.ch1 = readValAndWriteRegister(verify);
+    if (result.ch1 >= CS123X_TIMEOUT_ERROR) {
+        _channel = currentChannel;
+        _gain = currentGain;
+        result.ch2 = CS123X_SWITCH_ERROR;
+        return result;
+    }
+
+    // Backups value for rollback
+    currentChannel = _channel;
+    currentGain = _gain;
+
+    // Prapare configuration to restore 1st channel after reading
+    _channel = channel1;
+    _gain = gain1;
+
+    result.ch2 = readValAndWriteRegister(verify);
+    if (result.ch2 >= CS123X_TIMEOUT_ERROR) {
+        _channel = currentChannel;
+        _gain = currentGain;
+        return result;
+    }
+
+    return result;
 }
 
 int32_t CS123x::readAverage(uint8_t samples) {
@@ -377,7 +425,8 @@ float CS123x::readVoltage(float vRef, uint8_t samples) {
     int32_t raw = readAverage(samples);
     if (raw == CS123X_TIMEOUT_ERROR) return NAN;
 
-    uint32_t denom = static_cast<uint32_t>(CS123X_MAX_VALUE) * 2 * _gain;
+    static constexpr uint8_t gainMultipliers[4] = {1, 2, 64, 128};
+    uint32_t denom = static_cast<uint32_t>(CS123X_MAX_VALUE) * 2 * gainMultipliers[_gain & 0x03];
     return static_cast<float>(raw) * vRef / denom;
 }
 
