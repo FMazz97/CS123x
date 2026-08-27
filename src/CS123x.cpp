@@ -71,14 +71,14 @@ static portMUX_TYPE cs123x_mux = portMUX_INITIALIZER_UNLOCKED;
 #endif
 
 CS123x::CS123x(CS123X_Type cs123xType, uint8_t dout, uint8_t sclk,
-               CS123X_Gain gain, CS123X_Rate rate,
-               CS123X_Channel channel, CS123X_IntRef intRef) : _cs123xType((cs123xType <= CS123X_TYPE_CS1238) ? cs123xType : CS123X_TYPE_CS1237),
-                                                               _dout(dout),
-                                                               _sclk(sclk),
-                                                               // Fallback to safe defaults if invalid parameters are provided
-                                                               _baseGain((gain <= CS123X_GAIN_128) ? gain : CS123X_GAIN_128),
-                                                               _rate((rate <= CS123X_RATE_1280Hz) ? rate : CS123X_RATE_10Hz),
-                                                               _intRef((intRef <= CS123X_INT_REF_OFF) ? intRef : CS123X_INT_REF_OFF) {
+               CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate,
+               CS123X_IntRef intRef) : _cs123xType((cs123xType <= CS123X_TYPE_CS1238) ? cs123xType : CS123X_TYPE_CS1237),
+                                       _dout(dout),
+                                       _sclk(sclk),
+                                       // Fallback to safe defaults if invalid parameters are provided
+                                       _baseGain((gain <= CS123X_GAIN_128) ? gain : CS123X_GAIN_128),
+                                       _rate((rate <= CS123X_RATE_1280Hz) ? rate : CS123X_RATE_10Hz),
+                                       _intRef((intRef <= CS123X_INT_REF_OFF) ? intRef : CS123X_INT_REF_OFF) {
     // Channel validation considering chip type
     if (channel <= CS123X_CH_SHORT) {
         if (_cs123xType == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) {
@@ -352,12 +352,13 @@ CS123X_DualReading CS123x::readDualChannel(CS123X_Channel channel1, CS123X_Chann
             ch2Invalid ? CS123X_INVALID_PARAM : 0};
     }
 
-    if (channel1 == CS123X_CH_TEMP) gain1 = CS123X_GAIN_1;
-    if (channel2 == CS123X_CH_TEMP) gain2 = CS123X_GAIN_1;
+    // Effective gaint to be set
+    CS123X_Gain effGain1 = (channel1 == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain1;
+    CS123X_Gain effGain2 = (channel2 == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain2;
 
     // ensure correct configuration was applied
-    if (_channel != channel1 || _baseGain != gain1) {
-        if (!setConfig(channel1, gain1, _rate, verify)) {
+    if (_channel != channel1 || _gain != effGain1) {
+        if (!setConfig(channel1, effGain1, _rate, verify)) {
             return {CS123X_SWITCH_ERROR, CS123X_SWITCH_ERROR};
         }
     }
@@ -365,16 +366,19 @@ CS123X_DualReading CS123x::readDualChannel(CS123X_Channel channel1, CS123X_Chann
     // Backups value for rollback
     CS123X_Channel currentChannel = _channel;
     CS123X_Gain currentGain = _gain;
+    CS123X_Gain currentBaseGain = _baseGain;
 
     // Prapare configuration for swtich channel after reading
     _channel = channel2;
-    _gain = gain2;
+    _gain = effGain2;
+    _baseGain = gain2;
 
     CS123X_DualReading result;
     result.ch1 = readValAndWriteRegister(verify);
     if (result.ch1 >= CS123X_TIMEOUT_ERROR) {
         _channel = currentChannel;
         _gain = currentGain;
+        _baseGain = currentBaseGain;
         result.ch2 = CS123X_SWITCH_ERROR;
         return result;
     }
@@ -382,15 +386,18 @@ CS123X_DualReading CS123x::readDualChannel(CS123X_Channel channel1, CS123X_Chann
     // Backups value for rollback
     currentChannel = _channel;
     currentGain = _gain;
+    currentBaseGain = _baseGain;
 
-    // Prapare configuration to restore 1st channel after reading
+    // Restore configuration to 1st channel after reading
     _channel = channel1;
-    _gain = gain1;
+    _gain = effGain1;
+    _baseGain = gain1;
 
     result.ch2 = readValAndWriteRegister(verify);
     if (result.ch2 >= CS123X_TIMEOUT_ERROR) {
         _channel = currentChannel;
         _gain = currentGain;
+        _baseGain = currentBaseGain;
         return result;
     }
 

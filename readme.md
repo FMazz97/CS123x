@@ -47,8 +47,7 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 
 * **Dual Chip Support:** Native C++ driver for both Chipsea **CS1237** (single differential channel) and **CS1238** (2 differential channels) 24-bit ADCs.
 * **Full ADC Configuration:** Runtime control over PGA Gain (1x to 128x), Output Data Rate (10 Hz to 1280 Hz), Channel Selection, and Reference Source.
-* **Batch & Combined Configuration:** `setConfig()` sets channel, gain, and rate in a single register transaction; `getConfig()` returns a full state snapshot (`CS123X_Config`).
-* **Dual-Channel Reads:** `readDualChannel()` interleaves reads across two channels without wasting a conversion cycle per switch — for CS1238 dual-sensor setups, or CS1237 patterns like alternating `CS123X_CH_A`/`CS123X_CH_TEMP` for thermal compensation.
+* **Dual-Channel Reads:** `readDualChannel()` interleaves reads across two channels without wasting a conversion cycle per switch. Useful for CS1238 dual-sensor setups, or CS1237 patterns like alternating `CS123X_CH_A`/`CS123X_CH_TEMP` for thermal compensation.
 * **Voltage Readout:** `readVoltage()` converts raw ADC codes to the differential input voltage, accounting for the configured PGA gain and reference voltage.
 * **Dual Execution Modes (Safe Blocking vs. Fast Non-Blocking):**
   * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts and cooperative `yield()` calls preventing WatchDog Timer resets on ESP8266/ESP32 even across repeated calls (e.g. inside `readAverage()`). Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.

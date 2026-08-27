@@ -155,7 +155,7 @@ void setup() {
     Serial.println(F("\n[6] BATCH CONFIGURATION TEST"));
 
     bool batchOk = adc.setConfig(CS123X_CH_SHORT, CS123X_GAIN_64, CS123X_RATE_40Hz, true);
-    Serial.print(F("    setConfig(CH_A, GAIN_64, 40Hz) -> "));
+    Serial.print(F("    setConfig(CH_SHORT, GAIN_64, 40Hz) -> "));
     Serial.println(batchOk ? F("[OK]") : F("[FAIL]"));
 
     CS123X_Config snapshot = adc.getConfig();

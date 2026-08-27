@@ -23,13 +23,17 @@ enum CS123X_Type : uint8_t {
 };
 
 /**
- * @brief Internal voltage reference configuration.
+ * @brief Input channel selection.
  */
-enum CS123X_IntRef : uint8_t {
-    /** @brief Enable internal voltage reference (VREF = VDD, Default on ADC) */
-    CS123X_INT_REF_ON = 0x00,
-    /** @brief Disable internal voltage reference (requires external VREF) */
-    CS123X_INT_REF_OFF = 0x01
+enum CS123X_Channel : uint8_t {
+    /** @brief Input channel A (Default on ADC) */
+    CS123X_CH_A = 0x00,
+    /** @brief Input channel B (CS1238 only) */
+    CS123X_CH_B = 0x01,
+    /** @brief On-chip temperature sensor */
+    CS123X_CH_TEMP = 0x02,
+    /** @brief Internal short circuit for offset calibration/measurement */
+    CS123X_CH_SHORT = 0x03
 };
 
 /**
@@ -61,17 +65,13 @@ enum CS123X_Rate : uint8_t {
 };
 
 /**
- * @brief Input channel selection.
+ * @brief Internal voltage reference configuration.
  */
-enum CS123X_Channel : uint8_t {
-    /** @brief Input channel A (Default on ADC) */
-    CS123X_CH_A = 0x00,
-    /** @brief Input channel B (CS1238 only) */
-    CS123X_CH_B = 0x01,
-    /** @brief On-chip temperature sensor */
-    CS123X_CH_TEMP = 0x02,
-    /** @brief Internal short circuit for offset calibration/measurement */
-    CS123X_CH_SHORT = 0x03
+enum CS123X_IntRef : uint8_t {
+    /** @brief Enable internal voltage reference (VREF = VDD, Default on ADC) */
+    CS123X_INT_REF_ON = 0x00,
+    /** @brief Disable internal voltage reference (requires external VREF) */
+    CS123X_INT_REF_OFF = 0x01
 };
 
 /**
@@ -100,9 +100,9 @@ struct CS123X_Config {
 
 /**
  * @brief Result of a dual-channel read + config-switch operation.
- * @note Each field holds a raw ADC reading, or `CS123X_TIMEOUT_ERROR`/`CS123X_SWITCH_ERROR`
- *       on failure — in the latter case, the reading depends on an unconfirmed channel
- *       switch and must be considered invalid.
+ * @note Each field holds a raw ADC reading, or `CS123X_TIMEOUT_ERROR`/`CS123X_SWITCH_ERROR`/`CS123X_INVALID_PARAM`
+ *       on failure — in the `CS123X_SWITCH_ERROR` case, the reading depends on an unconfirmed channel switch
+ *       and must be considered invalid.
  */
 struct CS123X_DualReading {
     int32_t ch1;  ///< Raw ADC reading from the 1st channel.
@@ -166,10 +166,10 @@ class CS123x {
     uint8_t _doutBitMask;               ///< Bitmask for DOUT pin within its AVR port
 #endif
 
+    CS123X_Channel _channel;  ///< Currently selected input channel
     CS123X_Gain _gain;        ///< Active PGA gain setting
     CS123X_Gain _baseGain;    ///< Baseline PGA gain setting for normal channels
     CS123X_Rate _rate;        ///< Active data rate setting
-    CS123X_Channel _channel;  ///< Currently selected input channel
     CS123X_IntRef _intRef;    ///< Internal reference voltage state
 
     int32_t _offset = 0;  ///< Raw ADC zero-load offset in counts (tare value)
@@ -232,15 +232,15 @@ class CS123x {
      * @param cs123xType ADC model type (`CS123X_TYPE_CS1237` or `CS123X_TYPE_CS1238`).
      * @param dout Arduino digital pin connected to the ADC DOUT pin.
      * @param sclk Arduino digital pin connected to the ADC SCLK pin.
+     * @param channel Input channel selection (Default: `CS123X_CH_A`).
      * @param gain Initial PGA gain (Default: `CS123X_GAIN_128`).
      * @param rate Initial conversion rate (Default: `CS123X_RATE_10Hz`).
-     * @param channel Input channel selection (Default: `CS123X_CH_A`).
      * @param intRef Internal reference mode (Default: `CS123X_INT_REF_OFF`).
      */
     CS123x(CS123X_Type cs123xType, uint8_t dout, uint8_t sclk,
+           CS123X_Channel channel = CS123X_CH_A,
            CS123X_Gain gain = CS123X_GAIN_128,
            CS123X_Rate rate = CS123X_RATE_10Hz,
-           CS123X_Channel channel = CS123X_CH_A,
            CS123X_IntRef intRef = CS123X_INT_REF_OFF);
 
     /** @brief Default virtual destructor. */
@@ -292,8 +292,8 @@ class CS123x {
     bool setConfig(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify = true);
 
     /**
-     * @brief Convenience overload of `setConfig` usign a `CS123X_Config` struct
-     * @param config `CS123X_Config` struct witch contain desidered `CS123X_CH_...`,
+     * @brief Convenience overload of `setConfig` using a `CS123X_Config` struct
+     * @param config `CS123X_Config` struct which contain desidered `CS123X_CH_...`,
      *        `CS123X_GAIN_...` and `CS123X_RATE_...`.
      * @param verify If true, reads back the register to confirm configuration.
      * @see setConfig(CS123X_Channel, CS123X_Gain, CS123X_Rate, bool)
@@ -401,7 +401,7 @@ class CS123x {
      * Includes cooperative yield() calls during polling to prevent
      * Watchdog Timer (WDT) resets on ESP8266/ESP32 / RTOS environments.
      *
-     * @return 32-bit signed reading, or `CS123X_TIMEOUT_ERROR` (`0x80000000`) on timeout or bus failure.
+     * @return 32-bit signed reading, or `CS123X_TIMEOUT_ERROR` on timeout or bus failure.
      */
     int32_t read();
 
@@ -415,7 +415,7 @@ class CS123x {
      * cases like alternating `CS123X_CH_A`/`CS123X_CH_TEMP` for thermal
      * compensation, or `CS123X_CH_A`/`CS123X_CH_SHORT` for periodic auto-zero.
      *
-     * @param channel1 First channel to read (also the channel the chip is left on at the end of the call).
+     * @param channel1 First channel to read.
      * @param channel2 Second channel to read.
      * @param gain1 PGA gain for `channel1`. Overridden to `CS123X_GAIN_1` if `channel1` is `CS123X_CH_TEMP`.
      * @param gain2 PGA gain for `channel2`. Overridden to `CS123X_GAIN_1` if `channel2` is `CS123X_CH_TEMP`.
@@ -427,6 +427,9 @@ class CS123x {
      *         on hardware timeout, or `CS123X_SWITCH_ERROR` if a channel switch
      *         wasn't confirmed — in the latter two cases the reading depends on an
      *         unconfirmed/failed switch and must be considered invalid.
+     * 
+     * @note At the end of the reading, `channel1` and `gain1` will be the channel and the baseline gain
+     *       left on at the end of the call; or the last-confirmed verified (`verify` = `true`) status.
      * @note Rejects `CS123X_CH_B` on a CS1237 (single-channel chip) for either parameter.
      */
     CS123X_DualReading readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2,
