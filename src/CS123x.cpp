@@ -126,6 +126,20 @@ bool CS123x::isReady() const {
     return !digitalRead(_dout);
 }
 
+bool CS123x::waitReady(bool status) {
+    uint32_t start = millis();
+    uint32_t lastYield = start;
+    while (isReady() != status) {
+        uint32_t now = millis();
+        if (now - start >= getTimeoutMs()) return false;
+        if (now != lastYield) {
+            yield();  // Yield to background system tasks.
+            lastYield = millis();
+        }
+    }
+    return true;
+}
+
 int32_t CS123x::readValAndWriteRegister(bool verify) {
     int32_t value = 0;
     uint8_t config = 0x00;
@@ -138,11 +152,7 @@ int32_t CS123x::readValAndWriteRegister(bool verify) {
     config |= (_gain & 0b11) << 2;
     config |= (_channel & 0b11);
 
-    uint32_t start = millis();
-    while (!isReady()) {
-        if (millis() - start >= getTimeoutMs()) return CS123X_TIMEOUT_ERROR;
-        yield();  // Yield to background system tasks
-    }
+    if (!waitReady(true)) return CS123X_TIMEOUT_ERROR;
 
     // Avoid interruption during critical stage
     CS123X_ENTER_CRITICAL();
@@ -169,16 +179,8 @@ int32_t CS123x::readValAndWriteRegister(bool verify) {
     if (value & 0x800000) value |= 0xFF000000;
 
     if (verify) {
-        uint32_t start = millis();
-        while (isReady()) {
-            if (millis() - start >= getTimeoutMs()) return CS123X_SWITCH_ERROR;
-            yield();  // Yield to background system tasks.
-        }
-        start = millis();
-        while (!isReady()) {
-            if (millis() - start >= getTimeoutMs()) return CS123X_SWITCH_ERROR;
-            yield();  // Yield to background system tasks
-        }
+        if (!waitReady(false)) return CS123X_SWITCH_ERROR;
+        if (!waitReady(true)) return CS123X_SWITCH_ERROR;
 
         int32_t readBack = readRegister();
         if (readBack >= CS123X_TIMEOUT_ERROR)
@@ -195,11 +197,7 @@ int32_t CS123x::readRegister() {
     bool update = false;
     uint8_t config = 0;
 
-    uint32_t start = millis();
-    while (!isReady()) {
-        if (millis() - start >= getTimeoutMs()) return CS123X_TIMEOUT_ERROR;
-        yield();  // Yield to background system tasks
-    }
+    if (!waitReady(true)) return CS123X_TIMEOUT_ERROR;
 
     // Avoid interruption during critical stage
     CS123X_ENTER_CRITICAL();
@@ -262,11 +260,11 @@ void CS123x::voidPulses(uint8_t count) {
 
 uint32_t CS123x::getTimeoutMs() const {
     // Rate		|	Setting time (t2)	|   Conversion time (t9)    |   Timeout
-    // 10Hz		|	300ms				|	100ms                   |	350ms
-    // 40Hz		|	75ms				|	25ms                    |	110ms
-    // 640Hz	|	6.25ms				|	1.5625ms                |	30ms
-    // 1280Hz	|	3.125ms				|	0.78125ms               |	15ms
-    static constexpr uint32_t timeouts[4] = {350, 110, 30, 15};
+    // 10Hz		|	300ms				|	100ms                   |	325ms
+    // 40Hz		|	75ms				|	25ms                    |	100ms
+    // 640Hz	|	6.25ms				|	1.5625ms                |	15ms
+    // 1280Hz	|	3.125ms				|	0.78125ms               |	10ms
+    static constexpr uint32_t timeouts[4] = {325, 100, 15, 10};
 
     return timeouts[_rate & 0x03];
 }
@@ -330,11 +328,7 @@ int32_t CS123x::forceRead() {
 }
 
 int32_t CS123x::read() {
-    uint32_t start = millis();
-    while (!isReady()) {
-        if (millis() - start >= getTimeoutMs()) return CS123X_TIMEOUT_ERROR;
-        yield();  // Yield to background system tasks
-    }
+    if (!waitReady(true)) return CS123X_TIMEOUT_ERROR;
     return forceRead();
 }
 

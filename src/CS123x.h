@@ -177,6 +177,16 @@ class CS123x {
 
     float _refTempC = 25.0f;  ///< Ambient reference temperature in °C during sensor calibration
     int32_t _refCode = 0;     ///< Raw ADC code recorded at reference temperature (0 = uncalibrated)
+    
+    /**
+     * @brief Polls isReady() with a bounded timeout, yielding at most once per
+     *        millisecond to minimize overhead on fast polling loops (e.g. at
+     *        1280 Hz) while still preventing Watchdog Timer starvation on longer waits.
+     * @param status If true, waits for isReady()==true; if false, waits for
+     *        isReady()==false (used for the post-write DRDY-high phase).
+     * @return true if the condition was met in time, false on timeout.
+     */
+    bool waitReady(bool status);
 
     /**
      * @brief Reads the raw ADC value from the currently active channel, then writes
@@ -427,7 +437,7 @@ class CS123x {
      *         on hardware timeout, or `CS123X_SWITCH_ERROR` if a channel switch
      *         wasn't confirmed — in the latter two cases the reading depends on an
      *         unconfirmed/failed switch and must be considered invalid.
-     * 
+     *
      * @note At the end of the reading, `channel1` and `gain1` will be the channel and the baseline gain
      *       left on at the end of the call; or the last-confirmed verified (`verify` = `true`) status.
      * @note Rejects `CS123X_CH_B` on a CS1237 (single-channel chip) for either parameter.
