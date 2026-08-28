@@ -11,14 +11,37 @@
 
 #include <Arduino.h>
 
-// Hardware-synchronized critical sections:
-// FreeRTOS portMUX ensures multi-core & task safety on ESP32,
-// while standard interrupt toggling is used for single-core MCUs (AVR, SAMD, STM32).
-#if defined(ARDUINO_ARCH_ESP32)
+// Target-specific critical section wrappers.
+// Uses FreeRTOS portMUX on ESP32, scoped InterruptLock on ESP8266,
+// and hardware interrupt disable/restore flags for AVR, ARM, and RP2040.
+#if defined(__AVR__)
+#define CS123X_CRITICAL_VAR() uint8_t __cs123x_sreg
+#define CS123X_ENTER_CRITICAL() do { __cs123x_sreg = SREG; cli(); } while (0)
+#define CS123X_EXIT_CRITICAL() SREG = __cs123x_sreg
+#elif defined(ARDUINO_ARCH_ESP32)
 static portMUX_TYPE cs123x_mux = portMUX_INITIALIZER_UNLOCKED;
+#define CS123X_CRITICAL_VAR()
 #define CS123X_ENTER_CRITICAL() portENTER_CRITICAL(&cs123x_mux)
 #define CS123X_EXIT_CRITICAL() portEXIT_CRITICAL(&cs123x_mux)
-#else
+#elif defined(ARDUINO_ARCH_ESP8266)
+// esp8266::InterruptLock is an RAII guard that saves/restores interrupt state via scope.
+// ENTER opens a scope to construct the lock; EXIT closes it to trigger the destructor.
+// WARNING: Avoid early `return` inside the critical block, or manually close the scope brace first.
+#include <interrupts.h>
+#define CS123X_CRITICAL_VAR()
+#define CS123X_ENTER_CRITICAL() { esp8266::InterruptLock __cs123x_lock
+#define CS123X_EXIT_CRITICAL() }
+/* TO BE
+#elif defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_STM32F1)
+#define CS123X_CRITICAL_VAR() uint32_t __cs123x_primask
+#define CS123X_ENTER_CRITICAL() do { __cs123x_primask = __get_PRIMASK(); __disable_irq(); } while (0)
+#define CS123X_EXIT_CRITICAL() __set_PRIMASK(__cs123x_primask)
+#elif defined(ARDUINO_ARCH_RP2040)
+#define CS123X_CRITICAL_VAR() uint32_t __cs123x_irq
+#define CS123X_ENTER_CRITICAL() do { __cs123x_irq = save_and_disable_interrupts(); } while (0)
+#define CS123X_EXIT_CRITICAL() restore_interrupts(__cs123x_irq)*/
+#else // Fallback
+#define CS123X_CRITICAL_VAR()
 #define CS123X_ENTER_CRITICAL() noInterrupts()
 #define CS123X_EXIT_CRITICAL() interrupts()
 #endif
@@ -155,6 +178,7 @@ int32_t CS123x::readValAndWriteRegister(bool verify) {
     if (!waitReady(true)) return CS123X_TIMEOUT_ERROR;
 
     // Avoid interruption during critical stage
+    CS123X_CRITICAL_VAR();
     CS123X_ENTER_CRITICAL();
 
     value = readBits(24);  // bit 1-24
@@ -200,6 +224,7 @@ int32_t CS123x::readRegister() {
     if (!waitReady(true)) return CS123X_TIMEOUT_ERROR;
 
     // Avoid interruption during critical stage
+    CS123X_CRITICAL_VAR();
     CS123X_ENTER_CRITICAL();
 
     voidPulses(24);                      // bit 1-24, no conversion acquisition
@@ -314,6 +339,7 @@ bool CS123x::setRef(CS123X_IntRef intRef, bool verify) {
 
 int32_t CS123x::forceRead() {
     int32_t value = 0;
+    CS123X_CRITICAL_VAR();
     CS123X_ENTER_CRITICAL();
 
     value = readBits(24);
