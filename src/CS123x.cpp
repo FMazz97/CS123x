@@ -424,7 +424,7 @@ CS123X_DualReading CS123x::readDualChannel(CS123X_Channel channel1, CS123X_Chann
     return result;
 }
 
-int32_t CS123x::readAverage(uint8_t samples) {
+int32_t CS123x::readAverage(uint16_t samples) {
     if (samples <= 1) {
         return read();
     }

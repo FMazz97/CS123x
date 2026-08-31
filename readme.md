@@ -197,11 +197,9 @@ For standard **350 Ω load cells**, the recommended values are:
 | **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA / ~27.4mA | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
 | **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA | **5V Rail Only:** Lower quiescent power for 5V supply rails. |
 
-> **Note:** Measure the input resistance across the power/excitation terminals (`AVDD/E+` <=> `AGND/E-`) with a multimeter if you are unsure of your sensor's impedance.
+> **Note:** A lower R1 increases the TL431's steady-state current, and with it, its intrinsic noise even without a sensor connected. A bulk capacitor (10µF or larger) between `AVDD/E+` <=> `AGND/E-` is good practice in general, and becomes important once R1 is reduced: in testing, it cut the measured noise floor by roughly 5-6x.
 >
-> **CS1238:** Channel A and Channel B share the same `AVDD/E+` excitation rail. If using two sensors simultaneously, size the fix for their combined current draw.
->
-> Use the formulas above with the sensor's resistance and supply voltage to work out whether, and how much, R1 needs to be adjusted. Keeping an eye on the current/power the TL431 would need to dissipate if the sensor were ever disconnected.
+> Use the formulas above with the sensor's resistance and supply voltage (for CS1238 the combined draw of both channels) to work out whether, and how much, R1 needs to be adjusted. Keeping an eye on the current/power the TL431 would need to dissipate if the sensor were ever disconnected.
 
 ---
 

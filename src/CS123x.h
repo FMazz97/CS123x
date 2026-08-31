@@ -481,7 +481,7 @@ class CS123x {
      * @param samples Number of samples to average (default: 10).
      * @return Average raw 24-bit ADC code, or CS123X_TIMEOUT_ERROR if all reads fail.
      */
-    int32_t readAverage(uint8_t samples = 10);
+    int32_t readAverage(uint16_t samples = 10);
 
     /**
      * @brief Reads the differential input voltage.
