@@ -26,8 +26,12 @@
 #include "math.h"
 
 // Test pin configuration (adjust according to your hardware setup)
+#ifndef DOUT_PIN
 #define DOUT_PIN 4
+#endif
+#ifndef SCLK_PIN
 #define SCLK_PIN 5
+#endif
 
 // Test parameters
 #define VREF_VOLTS 2.5f    // TL431 reference voltage on module
@@ -135,10 +139,6 @@ void runGaussianTest() {
     int8_t lastPercent = -1;
 
     for (uint16_t i = 1; i <= nSamples; i++) {
-        // Non‑blocking wait for ADC readiness with ESC abort and timeout protection
-        uint32_t startTime = millis();
-        bool timeout = false;
-
         if (Serial.available() && Serial.read() == 27) {
             Serial.println(F("\n\n[ABORT] Test interrupted by user!"));
             return;

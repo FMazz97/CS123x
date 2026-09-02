@@ -6,8 +6,11 @@
 /// @copyright MIT License
 
 #include "cs123x.h"
-
 #include <math.h>
+
+#if defined(ARDUINO_ARCH_ESP32)
+portMUX_TYPE cs123x_mux = portMUX_INITIALIZER_UNLOCKED;
+#endif
 
 cs123x::cs123x(CS123X_Type cs123x_type, uint8_t dout, uint8_t sclk,
                CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate,

@@ -19,8 +19,12 @@
 #include "CS123x.h"
 
 // Test pin configuration (adjust according to your hardware setup)
+#ifndef DOUT_PIN
 #define DOUT_PIN 4
+#endif
+#ifndef SCLK_PIN
 #define SCLK_PIN 5
+#endif
 
 // Initial sensor instance configured for CS1237 at defatult configuration
 // (Change to CS123X_TYPE_CS1238 if testing a CS1238 chip)

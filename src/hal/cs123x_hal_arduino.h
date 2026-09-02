@@ -22,7 +22,7 @@
     } while (0)
 #define CS123X_EXIT_CRITICAL() SREG = __cs123x_sreg
 #elif defined(ARDUINO_ARCH_ESP32)
-static portMUX_TYPE cs123x_mux = portMUX_INITIALIZER_UNLOCKED;
+extern portMUX_TYPE cs123x_mux;
 #define CS123X_CRITICAL_VAR()
 #define CS123X_ENTER_CRITICAL() portENTER_CRITICAL(&cs123x_mux)
 #define CS123X_EXIT_CRITICAL() portEXIT_CRITICAL(&cs123x_mux)
