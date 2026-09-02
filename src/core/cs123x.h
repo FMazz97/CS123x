@@ -13,9 +13,7 @@
 #if defined(ARDUINO)
 #include "../hal/cs123x_hal_arduino.h"
 #elif defined(ESP_PLATFORM)
-// TODO: ESP-IDF native HAL, not yet implemented.
-// #include "../hal/cs123x_hal_idf.h"
-#error "CS123x core: ESP-IDF native HAL not implemented yet — build with the Arduino framework for now."
+#include "../hal/cs123x_hal_espidf.h"
 #else
 #error "CS123x core: unsupported platform (expected ARDUINO or ESP_PLATFORM)"
 #endif

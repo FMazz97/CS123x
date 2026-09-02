@@ -10,6 +10,8 @@
 
 #if defined(ARDUINO_ARCH_ESP32)
 portMUX_TYPE cs123x_mux = portMUX_INITIALIZER_UNLOCKED;
+#elif defined(ESP_PLATFORM)
+portMUX_TYPE cs123x_idf_mux = portMUX_INITIALIZER_UNLOCKED;
 #endif
 
 cs123x::cs123x(CS123X_Type cs123x_type, uint8_t dout, uint8_t sclk,
