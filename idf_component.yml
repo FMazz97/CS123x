@@ -1,0 +1,6 @@
+name: cs123x
+version: "1.1.0"
+description: "Driver for Chipsea CS1237/CS1238 24-bit ADCs (load cells, weight scales, bridge sensors) — high-speed, high-resolution alternative to the HX711."
+url: "https://github.com/FMazz97/CS123x"
+dependencies:
+  idf: ">=5.0"
