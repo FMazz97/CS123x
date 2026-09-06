@@ -1,4 +1,10 @@
 idf_component_register(
-    SRCS "src/core/cs123x.cpp"
-    INCLUDE_DIRS "src/core"
+    SRCS
+        "src/core/cs123x.cpp"
+    INCLUDE_DIRS
+        "src/core"
+        "src/hal"
+    REQUIRES
+        esp_driver_gpio
+        esp_timer
 )
