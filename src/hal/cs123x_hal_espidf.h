@@ -7,10 +7,10 @@
 #define CS123X_HAL_ESPIDF_H
 
 #include "driver/gpio.h"
-#include "esp_rom_sys.h"     // esp_rom_delay_us() — IDF v5.x location
-#include "esp_timer.h"       // esp_timer_get_time()
+#include "esp_rom_sys.h"  // esp_rom_delay_us() — IDF v5.x location
+#include "esp_timer.h"    // esp_timer_get_time()
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"   // taskYIELD()
+#include "freertos/task.h"  // taskYIELD()
 
 // -----------------------------------------------------------------------------
 // Critical section: same dual-core FreeRTOS spinlock mechanism Arduino-ESP32
@@ -44,35 +44,30 @@ extern portMUX_TYPE cs123x_idf_mux;
 // plain-INPUT choice on Espressif targets (weak pull-up parasitic capacitance
 // distorts fast serial sampling — see cs123x_hal_arduino.h).
 // -----------------------------------------------------------------------------
-inline void cs123x_hal_idf_pin_output(gpio_num_t pin) {
+inline void cs123x_hal_idf_init_pin(gpio_num_t pin, gpio_mode_t mode) {
     gpio_config_t io_conf = {};
     io_conf.pin_bit_mask = (1ULL << pin);
-    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.mode = mode;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.intr_type = GPIO_INTR_DISABLE;
     gpio_config(&io_conf);
 }
 
-inline void cs123x_hal_idf_pin_input(gpio_num_t pin) {
-    gpio_config_t io_conf = {};
-    io_conf.pin_bit_mask = (1ULL << pin);
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    gpio_config(&io_conf);
-}
+#define CS123X_INIT_IO()                                                           \
+    do {                                                                           \
+        cs123x_hal_idf_init_pin(static_cast<gpio_num_t>(_sclk), GPIO_MODE_OUTPUT); \
+        cs123x_hal_idf_init_pin(static_cast<gpio_num_t>(_dout), GPIO_MODE_INPUT);  \
+    } while (0)
 
-#define CS123X_SET_SCLK_OUTPUT() cs123x_hal_idf_pin_output(static_cast<gpio_num_t>(_sclk))
-#define CS123X_SET_DOUT_OUTPUT() cs123x_hal_idf_pin_output(static_cast<gpio_num_t>(_dout))
-#define CS123X_SET_DOUT_INPUT() cs123x_hal_idf_pin_input(static_cast<gpio_num_t>(_dout))
+#define CS123X_SET_DOUT_OUTPUT() gpio_set_direction(static_cast<gpio_num_t>(_dout), GPIO_MODE_OUTPUT)
+#define CS123X_SET_DOUT_INPUT() gpio_set_direction(static_cast<gpio_num_t>(_dout), GPIO_MODE_INPUT)
 
 // -----------------------------------------------------------------------------
 // Timing.
 // -----------------------------------------------------------------------------
 #define CS123X_MILLIS() (static_cast<uint32_t>(esp_timer_get_time() / 1000))
-#define CS123X_YIELD() taskYIELD()
+#define CS123X_YIELD() vTaskDelay(1)
 
 #ifndef CS123X_BIT_DELAY
 #define CS123X_BIT_DELAY() esp_rom_delay_us(1)

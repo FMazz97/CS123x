@@ -39,16 +39,10 @@ cs123x::cs123x(CS123X_Type cs123x_type, uint8_t dout, uint8_t sclk,
 }
 
 bool cs123x::begin() {
-    CS123X_SET_DOUT_INPUT();
-    CS123X_SET_SCLK_OUTPUT();
-    init_fast_io();
+    CS123X_INIT_IO();
     power_up();
 
     return !(read_val_and_write_register(true) >= CS123X_TIMEOUT_ERROR);
-}
-
-void cs123x::init_fast_io() {
-    CS123X_INIT_FAST_IO();
 }
 
 void cs123x::power_up() {
@@ -199,11 +193,11 @@ void cs123x::void_pulses(uint8_t count) {
 
 uint32_t cs123x::get_timeout_ms() const {
     // Rate		|	Setting time (t2)	|   Conversion time (t9)    |   Timeout
-    // 10Hz		|	300ms				|	100ms                   |	325ms
-    // 40Hz		|	75ms				|	25ms                    |	100ms
-    // 640Hz	|	6.25ms				|	1.5625ms                |	15ms
+    // 10Hz		|	300ms				|	100ms                   |	350ms
+    // 40Hz		|	75ms				|	25ms                    |	125ms
+    // 640Hz	|	6.25ms				|	1.5625ms                |	30ms
     // 1280Hz	|	3.125ms				|	0.78125ms               |	10ms
-    static constexpr uint32_t timeouts[4] = {325, 100, 15, 10};
+    static constexpr uint32_t timeouts[4] = {350, 125, 30, 10};
 
     return timeouts[_rate & 0x03];
 }

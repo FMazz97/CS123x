@@ -102,7 +102,7 @@ class cs123x {
      *        timing-critical bit-bang loop. No-op on non-AVR architectures.
      * @note Must be called after pin numbers are known (called from begin()).
      */
-    void init_fast_io();
+    //void init_fast_io();
 
    public:
     /**

@@ -58,9 +58,9 @@ extern portMUX_TYPE cs123x_mux;
 // Standard INPUT_PULLUP is safe and preferred on all other architectures.
 // -----------------------------------------------------------------------------
 #if defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
-#define CS123X_DOUT_MODE INPUT
+#define CS123X_DOUT_INPUT_MODE INPUT
 #else
-#define CS123X_DOUT_MODE INPUT_PULLUP
+#define CS123X_DOUT_INPUT_MODE INPUT_PULLUP
 #endif
 
 // -----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ extern portMUX_TYPE cs123x_mux;
 #define CS123X_DOUT_LOW() (*_dout_out_port_reg &= ~_dout_bit_mask)
 #define CS123X_DOUT_READ() ((*_dout_in_port_reg & _dout_bit_mask) ? 1 : 0)
 
-// Direct PORT/PIN register caching, called once from begin() via init_fast_io().
+// Direct PORT/PIN register caching, called once from begin().
 // Uses Arduino's pin-to-register mapping helpers — kept entirely inside the HAL,
 // the core never calls these directly.
 #define CS123X_INIT_FAST_IO()                                             \
@@ -102,9 +102,15 @@ extern portMUX_TYPE cs123x_mux;
 // -----------------------------------------------------------------------------
 // Pin direction / generic timing primitives.
 // -----------------------------------------------------------------------------
-#define CS123X_SET_SCLK_OUTPUT() pinMode(_sclk, OUTPUT)
 #define CS123X_SET_DOUT_OUTPUT() pinMode(_dout, OUTPUT)
-#define CS123X_SET_DOUT_INPUT() pinMode(_dout, CS123X_DOUT_MODE)
+#define CS123X_SET_DOUT_INPUT() pinMode(_dout, CS123X_DOUT_INPUT_MODE)
+
+#define CS123X_INIT_IO()                        \
+    do {                                        \
+        pinMode(_sclk, OUTPUT);                 \
+        pinMode(_dout, CS123X_DOUT_INPUT_MODE); \
+        CS123X_INIT_FAST_IO();                  \
+    } while (0)
 
 #define CS123X_MILLIS() millis()
 #define CS123X_YIELD() yield()
