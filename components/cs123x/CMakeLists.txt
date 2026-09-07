@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "${CMAKE_CURRENT_LIST_DIR}/../../src/core/cs123x.cpp"
+    INCLUDE_DIRS
+        "${CMAKE_CURRENT_LIST_DIR}/../../src/core"
+        "${CMAKE_CURRENT_LIST_DIR}/../../src/hal"
+    REQUIRES
+        esp_driver_gpio
+        esp_timer
+)
