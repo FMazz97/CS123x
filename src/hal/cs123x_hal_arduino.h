@@ -79,9 +79,9 @@ extern portMUX_TYPE cs123x_mux;
 #define CS123X_DOUT_LOW() (*_dout_out_port_reg &= ~_dout_bit_mask)
 #define CS123X_DOUT_READ() ((*_dout_in_port_reg & _dout_bit_mask) ? 1 : 0)
 
-// Direct PORT/PIN register caching, called once from begin().
-// Uses Arduino's pin-to-register mapping helpers — kept entirely inside the HAL,
-// the core never calls these directly.
+// Direct PORT/PIN register caching for AVR, invoked once from begin(),
+// using the HAL’s pin‑to‑register mapping to remove per‑call overhead
+// in the timing‑critical bit‑bang loop. No‑op on non‑AVR architectures.
 #define CS123X_INIT_FAST_IO()                                             \
     do {                                                                  \
         _sclk_port_reg = portOutputRegister(digitalPinToPort(_sclk));     \
@@ -113,8 +113,20 @@ extern portMUX_TYPE cs123x_mux;
     } while (0)
 
 #define CS123X_MILLIS() millis()
-#define CS123X_YIELD() yield()
 
+// -----------------------------------------------------------------------------
+// Yield Strategy: High rates (640/1280Hz) use pure polling to avoid missing 
+// sub-ms conversions due to OS tick delays (~10ms). Low rates (10/40Hz) call 
+// CS123X_YIELD() to prevent 100% CPU starvation and Watchdog (TWDT) resets.
+// Maps to vTaskDelay(1) on ESP32 and delay(1) on other MCUs.
+// -----------------------------------------------------------------------------
+#if defined(ARDUINO_ARCH_ESP32)
+#define CS123X_YIELD() vTaskDelay(1)
+#else
+#define CS123X_YIELD() yield()
+#endif
+
+// -----------------------------------------------------------------------------
 // GPIO Timing Synchronization:
 // A minimum pulse width/settling delay is required on every architecture to meet
 // CS123x timing specs (datasheet: SCLK pulse width t5 >= 455ns).
@@ -127,6 +139,7 @@ extern portMUX_TYPE cs123x_mux;
 // Defined as an overridable macro (not a hardcoded call) so it possible to redefine it
 // before including this header for finer-grained control (e.g. a longer margin for a
 // noisier wiring/setup, or __builtin_avr_delay_cycles() for sub-microsecond tuning on AVR).
+// -----------------------------------------------------------------------------
 #ifndef CS123X_BIT_DELAY
 #define CS123X_BIT_DELAY() delayMicroseconds(1)
 #endif

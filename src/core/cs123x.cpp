@@ -6,6 +6,7 @@
 /// @copyright MIT License
 
 #include "cs123x.h"
+
 #include <math.h>
 
 #if defined(ARDUINO_ARCH_ESP32)
@@ -195,8 +196,12 @@ uint32_t cs123x::get_timeout_ms() const {
     // Rate		|	Setting time (t2)	|   Conversion time (t9)    |   Timeout
     // 10Hz		|	300ms				|	100ms                   |	350ms
     // 40Hz		|	75ms				|	25ms                    |	125ms
-    // 640Hz	|	6.25ms				|	1.5625ms                |	30ms
-    // 1280Hz	|	3.125ms				|	0.78125ms               |	10ms
+    // 640Hz	|	6.25ms				|	1.5625ms                |	50ms
+    // 1280Hz	|	3.125ms				|	0.78125ms               |	45ms
+    //
+    // 640/1280Hz timeouts include ~20–30ms extra to absorb the worst‑case cost of a
+    // single CS123X_YIELD() on FreeRTOS, preventing false timeout reports during rate/gain switches.
+
     static constexpr uint32_t timeouts[4] = {350, 125, 30, 10};
 
     return timeouts[_rate & 0x03];
@@ -332,7 +337,7 @@ CS123X_DualReading cs123x::read_dual_channel(CS123X_Channel channel1, CS123X_Cha
     return result;
 }
 
-int32_t cs123x::read_average(uint16_t samples) {
+int32_t cs123x::read_average(uint8_t samples) {
     if (samples <= 1) {
         return read();
     }

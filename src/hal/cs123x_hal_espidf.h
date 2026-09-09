@@ -67,6 +67,17 @@ inline void cs123x_hal_idf_init_pin(gpio_num_t pin, gpio_mode_t mode) {
 // Timing.
 // -----------------------------------------------------------------------------
 #define CS123X_MILLIS() (static_cast<uint32_t>(esp_timer_get_time() / 1000))
+
+// -----------------------------------------------------------------------------
+// CS123X_YIELD() blocks for a real tick instead of a lightweight reschedule.
+// Required because ESP-IDF's taskYIELD() never guarantees the IDLE task runs,
+// starving it and tripping the Task Watchdog (confirmed on hardware: IDLE0 never
+// scheduled, TWDT fired ~5s in). wait_ready() throttles calls to at most once
+// per millisecond, so this cost is paid rarely at high ODR (640/1280Hz, where
+// the chip is normally ready within a single poll) and only becomes frequent
+// on a genuinely slow/unresponsive chip — which is exactly when yielding
+// matters most.
+// -----------------------------------------------------------------------------
 #define CS123X_YIELD() vTaskDelay(1)
 
 #ifndef CS123X_BIT_DELAY
