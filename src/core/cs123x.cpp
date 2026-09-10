@@ -58,8 +58,22 @@ bool cs123x::is_ready() const {
     return !CS123X_DOUT_READ();
 }
 
+uint32_t cs123x::get_timeout_ms() const {
+    // Rate		|	Setting time (t2)	|   Conversion time (t9)    |   Timeout
+    // 10Hz		|	300ms				|	100ms                   |	350ms
+    // 40Hz		|	75ms				|	25ms                    |	125ms
+    // 640Hz	|	6.25ms				|	1.5625ms                |	55ms
+    // 1280Hz	|	3.125ms				|	0.78125ms               |	53ms
+    // 640/1280Hz timeouts include ~20–30ms extra to absorb the worst‑case cost of a
+    // single CS123X_YIELD() on FreeRTOS, preventing false timeout reports during rate/gain switches.
+    static constexpr uint32_t timeouts[4] = {350, 125, 55, 53};
+
+    return timeouts[_rate & 0x03];
+}
+
 bool cs123x::wait_ready(bool status) {
     uint32_t timeout = get_timeout_ms();
+    uint8_t no_yield_zone((timeout > 100) ? 100 : 50);
     uint32_t start = CS123X_MILLIS();
     uint32_t last_yield = start;
     while (is_ready() != status) {
@@ -68,7 +82,7 @@ bool cs123x::wait_ready(bool status) {
         if (elapsed >= timeout) return false;
         // Call yield only every 2ms during the early window to avoid overhead at 640/1280Hz,
         // then stop yielding as approach t2→timeout to prioritize ADC readiness.
-        if ((now - last_yield >= 2) && (timeout - elapsed > 50)) {
+        if ((now - last_yield >= 2) && (timeout - elapsed > no_yield_zone)) {
             CS123X_YIELD();  // Yield to background system tasks.
             last_yield = CS123X_MILLIS();
         }
@@ -194,21 +208,6 @@ void cs123x::void_pulses(uint8_t count) {
         CS123X_SCLK_LOW();
         CS123X_BIT_DELAY();
     }
-}
-
-uint32_t cs123x::get_timeout_ms() const {
-    // Rate		|	Setting time (t2)	|   Conversion time (t9)    |   Timeout
-    // 10Hz		|	300ms				|	100ms                   |	350ms
-    // 40Hz		|	75ms				|	25ms                    |	125ms
-    // 640Hz	|	6.25ms				|	1.5625ms                |	55ms
-    // 1280Hz	|	3.125ms				|	0.78125ms               |	53ms
-    //
-    // 640/1280Hz timeouts include ~20–30ms extra to absorb the worst‑case cost of a
-    // single CS123X_YIELD() on FreeRTOS, preventing false timeout reports during rate/gain switches.
-
-    static constexpr uint32_t timeouts[4] = {350, 125, 55, 53};
-
-    return timeouts[_rate & 0x03];
 }
 
 bool cs123x::set_config(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify) {
@@ -349,8 +348,8 @@ int32_t cs123x::read_average(uint16_t samples) {
     int64_t sum = 0;
     uint16_t valid_count = 0;
     // A throttle is required only at high sample rates (640/1280 Hz), because wait_ready()
-    // never yields at those speeds. At low rates (10/40 Hz), wait_ready() already yields regularly,
-    // so no extra throttle is needed.
+    // never yields at those speeds, if readings proceed correctly.
+    // At low rates (10/40 Hz), wait_ready() already yields regularly, so no extra throttle is needed.
     bool need_yield = (_rate == CS123X_RATE_640Hz || _rate == CS123X_RATE_1280Hz);
     uint32_t last_yield = CS123X_MILLIS();
 
