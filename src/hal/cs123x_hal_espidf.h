@@ -1,6 +1,11 @@
-/// @file cs123x_hal_idf.h
-/// @brief ESP-IDF (native, non-Arduino) HAL for the CS123x core: GPIO, timing,
-///        and critical section primitives — ESP-IDF v5.x APIs.
+/// @file cs123x_hal_espidf.h
+/// @brief ESP-IDF HAL for the CS123x core: GPIO, timing, and critical-section
+///        primitives using native ESP-IDF v5.x/v6.x APIs.
+/// @details Implements CS123X_* macros through the IDF gpio driver, esp_timer,
+///          ROM delay functions, and FreeRTOS dual-core spinlocks.
+///          No driver logic lives here — only hardware primitives.
+/// @author FMazz97 (https://github.com/FMazz97)
+/// @see cs123x.h, cs123x.cpp
 /// @copyright MIT License
 
 #ifndef CS123X_HAL_ESPIDF_H
@@ -60,13 +65,27 @@ inline void cs123x_hal_idf_init_pin(gpio_num_t pin, gpio_mode_t mode) {
         cs123x_hal_idf_init_pin(static_cast<gpio_num_t>(_dout), GPIO_MODE_INPUT);  \
     } while (0)
 
+// -----------------------------------------------------------------------------
+// Pin direction / timing primitives.
+// -----------------------------------------------------------------------------
 #define CS123X_SET_DOUT_OUTPUT() gpio_set_direction(static_cast<gpio_num_t>(_dout), GPIO_MODE_OUTPUT)
 #define CS123X_SET_DOUT_INPUT() gpio_set_direction(static_cast<gpio_num_t>(_dout), GPIO_MODE_INPUT)
+#define CS123X_MILLIS() (static_cast<uint32_t>(esp_timer_get_time() / 1000))
 
 // -----------------------------------------------------------------------------
-// Timing.
+// GPIO Timing Synchronization:
+// A minimum pulse width/settling delay is required on every architecture to meet
+// CS123x timing specs (datasheet: SCLK pulse width t5 >= 455ns).
+// On 32-bit MCUs (ESP32/ESP8266/SAMD/STM32/...), this delay is mandatory because
+// direct digitalWrite()/digitalRead() calls alone are too fast and/or too jittery
+// to reliably guarantee it.
+// Defined as an overridable macro (not a hardcoded call) so it possible to redefine it
+// before including this header for finer-grained control (e.g. a longer margin for a
+// noisier wiring/setup, or for sub-microsecond tuning).
 // -----------------------------------------------------------------------------
-#define CS123X_MILLIS() (static_cast<uint32_t>(esp_timer_get_time() / 1000))
+#ifndef CS123X_BIT_DELAY
+#define CS123X_BIT_DELAY() esp_rom_delay_us(1)
+#endif
 
 // -----------------------------------------------------------------------------
 // CS123X_YIELD() blocks for a real tick instead of a lightweight reschedule.
@@ -79,9 +98,5 @@ inline void cs123x_hal_idf_init_pin(gpio_num_t pin, gpio_mode_t mode) {
 // matters most.
 // -----------------------------------------------------------------------------
 #define CS123X_YIELD() vTaskDelay(1)
-
-#ifndef CS123X_BIT_DELAY
-#define CS123X_BIT_DELAY() esp_rom_delay_us(1)
-#endif
 
 #endif /* CS123X_HAL_ESPIDF_H */

@@ -1,12 +1,111 @@
 /// @file cs123x_hal_arduino.h
-/// @brief Arduino framework HAL for the CS123x core: GPIO, timing, and critical
-///        section primitives, resolved at compile-time per target architecture.
+/// @brief Arduino HAL for the CS123x core: GPIO, timing, and critical-section
+///        primitives resolved at compile time per target architecture.
+/// @details Provides platform-specific implementations of the CS123X_* macros
+///          used by the core driver: fast AVR register access, Espressif INPUT
+///          mode handling, yield strategies, and interrupt-safe critical sections.
+///          No driver logic lives here — only hardware primitives.
+/// @author FMazz97 (https://github.com/FMazz97)
+/// @see cs123x.h, cs123x.cpp
 /// @copyright MIT License
 
 #ifndef CS123X_HAL_ARDUINO_H
 #define CS123X_HAL_ARDUINO_H
 
 #include <Arduino.h>
+
+// -----------------------------------------------------------------------------
+// DOUT Pin Mode Configuration:
+// Plain INPUT is required on Espressif MCUs (ESP8266/ESP32) to prevent internal
+// weak pull-up parasitic capacitance from distorting fast serial data sampling.
+// Standard INPUT_PULLUP is safe and preferred on all other architectures.
+// -----------------------------------------------------------------------------
+#if defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
+#define CS123X_DOUT_INPUT_MODE INPUT
+#else
+#define CS123X_DOUT_INPUT_MODE INPUT_PULLUP
+#endif
+
+// -----------------------------------------------------------------------------
+// Pin direction / timing primitives.
+// -----------------------------------------------------------------------------
+#define CS123X_SET_DOUT_OUTPUT() pinMode(_dout, OUTPUT)
+#define CS123X_SET_DOUT_INPUT() pinMode(_dout, CS123X_DOUT_INPUT_MODE)
+#define CS123X_MILLIS() millis()
+
+// -----------------------------------------------------------------------------
+// Fast pin I/O primitives:
+// On AVR, these bypass digitalWrite()/digitalRead() (several µs each on classic
+// 16MHz cores) via cached direct PORT/PIN register access. This is essential at
+// high ODR (640Hz/1280Hz): the chip's internal conversion cycle (as short as
+// ~0.78ms at 1280Hz) can complete WHILE a slow 46-clock register transaction is
+// still in progress, colliding with and corrupting it.
+// On other architectures, digitalWrite()/digitalRead() are kept unchanged.
+// -----------------------------------------------------------------------------
+#if defined(__AVR__)
+#define CS123X_SCLK_HIGH() (*_sclk_port_reg |= _sclk_bit_mask)
+#define CS123X_SCLK_LOW() (*_sclk_port_reg &= ~_sclk_bit_mask)
+#define CS123X_DOUT_HIGH() (*_dout_out_port_reg |= _dout_bit_mask)
+#define CS123X_DOUT_LOW() (*_dout_out_port_reg &= ~_dout_bit_mask)
+#define CS123X_DOUT_READ() ((*_dout_in_port_reg & _dout_bit_mask) ? 1 : 0)
+
+// Direct PORT/PIN register caching for AVR, invoked once from begin(),
+// using the HAL’s pin‑to‑register mapping to remove per‑call overhead
+// in the timing‑critical bit‑bang loop. No‑op on non‑AVR architectures.
+#define CS123X_INIT_FAST_IO()                                             \
+    do {                                                                  \
+        _sclk_port_reg = portOutputRegister(digitalPinToPort(_sclk));     \
+        _sclk_bit_mask = digitalPinToBitMask(_sclk);                      \
+        _dout_out_port_reg = portOutputRegister(digitalPinToPort(_dout)); \
+        _dout_in_port_reg = portInputRegister(digitalPinToPort(_dout));   \
+        _dout_bit_mask = digitalPinToBitMask(_dout);                      \
+    } while (0)
+#else
+#define CS123X_SCLK_HIGH() digitalWrite(_sclk, HIGH)
+#define CS123X_SCLK_LOW() digitalWrite(_sclk, LOW)
+#define CS123X_DOUT_HIGH() digitalWrite(_dout, HIGH)
+#define CS123X_DOUT_LOW() digitalWrite(_dout, LOW)
+#define CS123X_DOUT_READ() digitalRead(_dout)
+#define CS123X_INIT_FAST_IO() ((void)0)
+#endif
+
+
+#define CS123X_INIT_IO()                        \
+    do {                                        \
+        pinMode(_sclk, OUTPUT);                 \
+        pinMode(_dout, CS123X_DOUT_INPUT_MODE); \
+        CS123X_INIT_FAST_IO();                  \
+    } while (0)
+
+// -----------------------------------------------------------------------------
+// GPIO Timing Synchronization:
+// A minimum pulse width/settling delay is required on every architecture to meet
+// CS123x timing specs (datasheet: SCLK pulse width t5 >= 455ns).
+// On 32-bit MCUs (ESP32/ESP8266/SAMD/STM32/...), this delay is mandatory because
+// direct digitalWrite()/digitalRead() calls alone are too fast and/or too jittery
+// to reliably guarantee it.
+// On AVR, fast direct PORT/PIN register access (see CS123X_SCLK_HIGH() etc.) bypasses
+// the digitalWrite()/digitalRead() overhead that used to provide this margin "for free",
+// so the same explicit delay is required here too.
+// Defined as an overridable macro (not a hardcoded call) so it possible to redefine it
+// before including this header for finer-grained control (e.g. a longer margin for a
+// noisier wiring/setup, or for sub-microsecond tuning).
+// -----------------------------------------------------------------------------
+#ifndef CS123X_BIT_DELAY
+#define CS123X_BIT_DELAY() delayMicroseconds(1)
+#endif
+
+// -----------------------------------------------------------------------------
+// Yield Strategy: High rates (640/1280Hz) use pure polling to avoid missing 
+// sub-ms conversions due to OS tick delays (~10ms). Low rates (10/40Hz) call 
+// CS123X_YIELD() to prevent 100% CPU starvation and Watchdog (TWDT) resets.
+// Maps to vTaskDelay(1) on ESP32 and delay(1) on other MCUs.
+// -----------------------------------------------------------------------------
+#if defined(ARDUINO_ARCH_ESP32)
+#define CS123X_YIELD() vTaskDelay(1)
+#else
+#define CS123X_YIELD() yield()
+#endif
 
 // -----------------------------------------------------------------------------
 // Target-specific critical section wrappers.
@@ -49,99 +148,6 @@ extern portMUX_TYPE cs123x_mux;
 #define CS123X_CRITICAL_VAR()
 #define CS123X_ENTER_CRITICAL() noInterrupts()
 #define CS123X_EXIT_CRITICAL() interrupts()
-#endif
-
-// -----------------------------------------------------------------------------
-// DOUT Pin Mode Configuration:
-// Plain INPUT is required on Espressif MCUs (ESP8266/ESP32) to prevent internal
-// weak pull-up parasitic capacitance from distorting fast serial data sampling.
-// Standard INPUT_PULLUP is safe and preferred on all other architectures.
-// -----------------------------------------------------------------------------
-#if defined(ARDUINO_ARCH_ESP8266) || defined(ARDUINO_ARCH_ESP32)
-#define CS123X_DOUT_INPUT_MODE INPUT
-#else
-#define CS123X_DOUT_INPUT_MODE INPUT_PULLUP
-#endif
-
-// -----------------------------------------------------------------------------
-// Fast pin I/O primitives:
-// On AVR, these bypass digitalWrite()/digitalRead() (several µs each on classic
-// 16MHz cores) via cached direct PORT/PIN register access. This is essential at
-// high ODR (640Hz/1280Hz): the chip's internal conversion cycle (as short as
-// ~0.78ms at 1280Hz) can complete WHILE a slow 46-clock register transaction is
-// still in progress, colliding with and corrupting it.
-// On other architectures, digitalWrite()/digitalRead() are kept unchanged.
-// -----------------------------------------------------------------------------
-#if defined(__AVR__)
-#define CS123X_SCLK_HIGH() (*_sclk_port_reg |= _sclk_bit_mask)
-#define CS123X_SCLK_LOW() (*_sclk_port_reg &= ~_sclk_bit_mask)
-#define CS123X_DOUT_HIGH() (*_dout_out_port_reg |= _dout_bit_mask)
-#define CS123X_DOUT_LOW() (*_dout_out_port_reg &= ~_dout_bit_mask)
-#define CS123X_DOUT_READ() ((*_dout_in_port_reg & _dout_bit_mask) ? 1 : 0)
-
-// Direct PORT/PIN register caching for AVR, invoked once from begin(),
-// using the HAL’s pin‑to‑register mapping to remove per‑call overhead
-// in the timing‑critical bit‑bang loop. No‑op on non‑AVR architectures.
-#define CS123X_INIT_FAST_IO()                                             \
-    do {                                                                  \
-        _sclk_port_reg = portOutputRegister(digitalPinToPort(_sclk));     \
-        _sclk_bit_mask = digitalPinToBitMask(_sclk);                      \
-        _dout_out_port_reg = portOutputRegister(digitalPinToPort(_dout)); \
-        _dout_in_port_reg = portInputRegister(digitalPinToPort(_dout));   \
-        _dout_bit_mask = digitalPinToBitMask(_dout);                      \
-    } while (0)
-#else
-#define CS123X_SCLK_HIGH() digitalWrite(_sclk, HIGH)
-#define CS123X_SCLK_LOW() digitalWrite(_sclk, LOW)
-#define CS123X_DOUT_HIGH() digitalWrite(_dout, HIGH)
-#define CS123X_DOUT_LOW() digitalWrite(_dout, LOW)
-#define CS123X_DOUT_READ() digitalRead(_dout)
-#define CS123X_INIT_FAST_IO() ((void)0)
-#endif
-
-// -----------------------------------------------------------------------------
-// Pin direction / generic timing primitives.
-// -----------------------------------------------------------------------------
-#define CS123X_SET_DOUT_OUTPUT() pinMode(_dout, OUTPUT)
-#define CS123X_SET_DOUT_INPUT() pinMode(_dout, CS123X_DOUT_INPUT_MODE)
-
-#define CS123X_INIT_IO()                        \
-    do {                                        \
-        pinMode(_sclk, OUTPUT);                 \
-        pinMode(_dout, CS123X_DOUT_INPUT_MODE); \
-        CS123X_INIT_FAST_IO();                  \
-    } while (0)
-
-#define CS123X_MILLIS() millis()
-
-// -----------------------------------------------------------------------------
-// Yield Strategy: High rates (640/1280Hz) use pure polling to avoid missing 
-// sub-ms conversions due to OS tick delays (~10ms). Low rates (10/40Hz) call 
-// CS123X_YIELD() to prevent 100% CPU starvation and Watchdog (TWDT) resets.
-// Maps to vTaskDelay(1) on ESP32 and delay(1) on other MCUs.
-// -----------------------------------------------------------------------------
-#if defined(ARDUINO_ARCH_ESP32)
-#define CS123X_YIELD() vTaskDelay(1)
-#else
-#define CS123X_YIELD() yield()
-#endif
-
-// -----------------------------------------------------------------------------
-// GPIO Timing Synchronization:
-// A minimum pulse width/settling delay is required on every architecture to meet
-// CS123x timing specs (datasheet: SCLK pulse width t5 >= 455ns).
-// On 32-bit MCUs (ESP32/ESP8266/SAMD/STM32/...), this delay is mandatory because
-// direct digitalWrite()/digitalRead() calls alone are too fast and/or too jittery
-// to reliably guarantee it.
-// On AVR, fast direct PORT/PIN register access (see CS123X_SCLK_HIGH() etc.) bypasses
-// the digitalWrite()/digitalRead() overhead that used to provide this margin "for free",
-// so the same explicit delay is required here too.
-// Defined as an overridable macro (not a hardcoded call) so it possible to redefine it
-// before including this header for finer-grained control (e.g. a longer margin for a
-// noisier wiring/setup, or __builtin_avr_delay_cycles() for sub-microsecond tuning on AVR).
-// -----------------------------------------------------------------------------
-#ifndef CS123X_BIT_DELAY
-#define CS123X_BIT_DELAY() delayMicroseconds(1)
 #endif
 
 #endif /* CS123X_HAL_ARDUINO_H */

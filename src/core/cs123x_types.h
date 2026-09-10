@@ -1,6 +1,10 @@
 /// @file cs123x_types.h
-/// @brief Shared enums, structs, and sentinel values for the CS123x core.
-/// @details Framework-agnostic: no Arduino/ESP-IDF dependency.
+/// @brief Shared enums, structs, and sentinel values for the CS123x core driver.
+/// @details Defines ADC model types, channel/gain/rate selections, configuration
+///          structures, dual-channel result containers, and all sentinel error
+///          codes. Fully framework-agnostic: no Arduino or ESP-IDF dependency.
+/// @author FMazz97 (https://github.com/FMazz97)
+/// @see cs123x.h, cs123x.cpp
 /// @copyright MIT License
 
 #ifndef CS123X_TYPES_H

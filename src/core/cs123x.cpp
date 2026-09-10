@@ -1,8 +1,13 @@
 /// @file cs123x.cpp
-/// @brief Implementation of the framework-agnostic CS123x core.
-/// @details All hardware access goes through CS123X_* macros provided by the
-///          HAL selected in cs123x.h — this file contains no direct Arduino
-///          or ESP-IDF API calls.
+/// @brief Implementation file for the CS123x 24-bit ADC core driver (CS1237 / CS1238).
+/// @details Implements the full 2‑wire bit‑bang protocol, dynamic timeout logic,
+///          register write/verify transactions with automatic rollback, dual‑channel
+///          interleaving, calibration routines, and temperature-sensor support.
+///          All GPIO/timing operations are performed through CS123X_* HAL macros,
+///          keeping this file fully framework-agnostic.
+/// @author FMazz97 (https://github.com/FMazz97)
+/// @see cs123x.h, cs123x_types.h, cs123x_hal_arduino.h, cs123x_hal_idf.h,
+///      CS123x GitHub Repository: https://github.com/FMazz97/CS123x
 /// @copyright MIT License
 
 #include "cs123x.h"

@@ -1,8 +1,12 @@
 /// @file cs123x.h
-/// @brief Core driver for the CS1237 / CS1238 24-bit ADC — framework-agnostic
-///        public API (this is the class an ESP-IDF component would use directly).
-/// @details The Arduino-facing name `CS123x` is a thin camelCase facade over this
-///          class — see the top-level `CS123x.h`.
+/// @brief Main header file for the CS123x 24-bit ADC core driver (CS1237 / CS1238).
+/// @details Declares the framework-agnostic driver class, public API, internal
+///          configuration state, and low-level read/write operations used by all
+///          platforms. No Arduino or ESP-IDF calls appear here — hardware access
+///          is abstracted through HAL macros.
+/// @author FMazz97 (https://github.com/FMazz97)
+/// @see cs123x.cpp, cs123x_types.h, cs123x_hal_arduino.h, cs123x_hal_espidf.h,
+///      CS123x GitHub Repository: https://github.com/FMazz97/CS123x
 /// @copyright MIT License
 
 #ifndef CS123X_CORE_H

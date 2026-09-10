@@ -1,9 +1,11 @@
 /// @file CS123x.h
 /// @brief Arduino-facing facade for the CS123x 24-bit ADC library (CS1237 / CS1238).
-/// @details Thin camelCase wrapper over the framework-agnostic `cs123x` core —
-///          every method forwards 1:1, no logic lives here.
+/// @details Thin camelCase wrapper over the framework-agnostic `cs123x` core.
+///          Provides an Arduino-style API where every method forwards 1:1 to the
+///          underlying core driver. No logic is implemented here.
 /// @author FMazz97 (https://github.com/FMazz97)
-/// @see CS123x GitHub Repository: https://github.com/FMazz97/CS123x
+/// @see cs123x.h, cs123x.cpp, cs123x_hal_arduino.h,
+///      CS123x GitHub Repository: https://github.com/FMazz97/CS123x
 /// @copyright MIT License
 
 #ifndef CS123X_H
@@ -54,6 +56,8 @@ class CS123x {
 
     int32_t forceRead() { return _core.force_read(); }
     int32_t read() { return _core.read(); }
+    int32_t readAverage(uint16_t samples = 10) { return _core.read_average(samples); }
+    float readVoltage(float vRef = 2.5f, uint16_t samples = 1) { return _core.read_voltage(vRef, samples); }
 
     CS123X_DualReading readDualChannel(CS123X_Channel channel1, CS123X_Channel channel2,
                                        CS123X_Gain gain1, CS123X_Gain gain2, bool verify = true) {
@@ -69,13 +73,10 @@ class CS123x {
         return _core.read_dual_channel(channel2, verify);
     }
 
-    int32_t readAverage(uint16_t samples = 10) { return _core.read_average(samples); }
-    float readVoltage(float vRef = 2.5f, uint8_t samples = 1) { return _core.read_voltage(vRef, samples); }
-
-    bool tare(uint8_t samples = 10) { return _core.tare(samples); }
-    bool calibrateScale(float knownWeight, uint8_t samples = 10) { return _core.calibrate_scale(knownWeight, samples); }
-    int32_t getValue(uint8_t samples = 1) { return _core.get_value(samples); }
-    float getUnits(uint8_t samples = 1) { return _core.get_units(samples); }
+    bool tare(uint16_t samples = 10) { return _core.tare(samples); }
+    bool calibrateScale(float knownWeight, uint16_t samples = 10) { return _core.calibrate_scale(knownWeight, samples); }
+    int32_t getValue(uint16_t samples = 1) { return _core.get_value(samples); }
+    float getUnits(uint16_t samples = 1) { return _core.get_units(samples); }
 
     void setOffset(int32_t offset) { _core.set_offset(offset); }
     int32_t getOffset() const { return _core.get_offset(); }
@@ -84,7 +85,7 @@ class CS123x {
 
     bool setTempCalibration(float refTempC) { return _core.set_temp_calibration(refTempC); }
     void setTempCalibration(float refTempC, int32_t refCode) { _core.set_temp_calibration(refTempC, refCode); }
-    float readTemperature(uint8_t samples = 1, bool verify = true) { return _core.read_temperature(samples, verify); }
+    float readTemperature(uint16_t samples = 1, bool verify = true) { return _core.read_temperature(samples, verify); }
 };
 
 #endif /* CS123X_H */
