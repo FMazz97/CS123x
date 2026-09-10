@@ -59,12 +59,16 @@ bool cs123x::is_ready() const {
 }
 
 bool cs123x::wait_ready(bool status) {
+    uint32_t timeout = get_timeout_ms();
     uint32_t start = CS123X_MILLIS();
     uint32_t last_yield = start;
     while (is_ready() != status) {
         uint32_t now = CS123X_MILLIS();
-        if (now - start >= get_timeout_ms()) return false;
-        if (now != last_yield) {
+        uint32_t elapsed = now - start;
+        if (elapsed >= timeout) return false;
+        // Call yield only every 2ms during the early window to avoid overhead at 640/1280Hz,
+        // then stop yielding as approach t2→timeout to prioritize ADC readiness.
+        if ((now - last_yield >= 2) && (timeout - elapsed > 50)) {
             CS123X_YIELD();  // Yield to background system tasks.
             last_yield = CS123X_MILLIS();
         }
@@ -196,13 +200,13 @@ uint32_t cs123x::get_timeout_ms() const {
     // Rate		|	Setting time (t2)	|   Conversion time (t9)    |   Timeout
     // 10Hz		|	300ms				|	100ms                   |	350ms
     // 40Hz		|	75ms				|	25ms                    |	125ms
-    // 640Hz	|	6.25ms				|	1.5625ms                |	50ms
-    // 1280Hz	|	3.125ms				|	0.78125ms               |	45ms
+    // 640Hz	|	6.25ms				|	1.5625ms                |	55ms
+    // 1280Hz	|	3.125ms				|	0.78125ms               |	53ms
     //
     // 640/1280Hz timeouts include ~20–30ms extra to absorb the worst‑case cost of a
     // single CS123X_YIELD() on FreeRTOS, preventing false timeout reports during rate/gain switches.
 
-    static constexpr uint32_t timeouts[4] = {350, 125, 30, 10};
+    static constexpr uint32_t timeouts[4] = {350, 125, 55, 53};
 
     return timeouts[_rate & 0x03];
 }
@@ -337,20 +341,31 @@ CS123X_DualReading cs123x::read_dual_channel(CS123X_Channel channel1, CS123X_Cha
     return result;
 }
 
-int32_t cs123x::read_average(uint8_t samples) {
+int32_t cs123x::read_average(uint16_t samples) {
     if (samples <= 1) {
         return read();
     }
 
     int64_t sum = 0;
-    uint8_t valid_count = 0;
+    uint16_t valid_count = 0;
+    // A throttle is required only at high sample rates (640/1280 Hz), because wait_ready()
+    // never yields at those speeds. At low rates (10/40 Hz), wait_ready() already yields regularly,
+    // so no extra throttle is needed.
+    bool need_yield = (_rate == CS123X_RATE_640Hz || _rate == CS123X_RATE_1280Hz);
+    uint32_t last_yield = CS123X_MILLIS();
 
-    for (uint8_t i = 0; i < samples; ++i) {
+    for (uint16_t i = 0; i < samples; ++i) {
         int32_t raw = read();
 
         if (raw != CS123X_TIMEOUT_ERROR) {
             sum += raw;
             valid_count++;
+        }
+        if (need_yield) {
+            if (CS123X_MILLIS() - last_yield >= 1000) {
+                CS123X_YIELD();
+                last_yield = CS123X_MILLIS();
+            }
         }
     }
 
@@ -361,7 +376,7 @@ int32_t cs123x::read_average(uint8_t samples) {
     return static_cast<int32_t>(sum / valid_count);
 }
 
-float cs123x::read_voltage(float v_ref, uint8_t samples) {
+float cs123x::read_voltage(float v_ref, uint16_t samples) {
     int32_t raw = read_average(samples);
     if (raw == CS123X_TIMEOUT_ERROR) return NAN;
 
@@ -370,7 +385,7 @@ float cs123x::read_voltage(float v_ref, uint8_t samples) {
     return static_cast<float>(raw) * v_ref / denom;
 }
 
-bool cs123x::tare(uint8_t samples) {
+bool cs123x::tare(uint16_t samples) {
     int32_t raw = read_average(samples);
     if (raw == CS123X_TIMEOUT_ERROR) return false;
 
@@ -378,7 +393,7 @@ bool cs123x::tare(uint8_t samples) {
     return true;
 }
 
-bool cs123x::calibrate_scale(float known_weight, uint8_t samples) {
+bool cs123x::calibrate_scale(float known_weight, uint16_t samples) {
     if (known_weight <= 0.0f) return false;  // Avoid negative weight
 
     int32_t raw = read_average(samples);
@@ -392,7 +407,7 @@ bool cs123x::calibrate_scale(float known_weight, uint8_t samples) {
     return true;
 }
 
-int32_t cs123x::get_value(uint8_t samples) {
+int32_t cs123x::get_value(uint16_t samples) {
     int32_t raw = read_average(samples);
     if (raw == CS123X_TIMEOUT_ERROR) {
         return CS123X_TIMEOUT_ERROR;
@@ -400,7 +415,7 @@ int32_t cs123x::get_value(uint8_t samples) {
     return raw - _offset;
 }
 
-float cs123x::get_units(uint8_t samples) {
+float cs123x::get_units(uint16_t samples) {
     if (_scale == 0.0f) return NAN;  // Avoid to divide by 0, scale not calibrated
 
     int32_t val = get_value(samples);
@@ -434,7 +449,7 @@ void cs123x::set_temp_calibration(float ref_temp_c, int32_t ref_code) {
     _ref_code = ref_code;
 }
 
-float cs123x::read_temperature(uint8_t samples, bool verify) {
+float cs123x::read_temperature(uint16_t samples, bool verify) {
     if (_ref_code == 0) return NAN;  // Uncalibrated state _ref_code = 0 should be at 0K, impossible
 
     CS123X_Channel previous_channel = _channel;

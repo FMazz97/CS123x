@@ -307,52 +307,46 @@ class cs123x {
     /**
      * @brief Reads multiple raw samples and returns their arithmetic mean.
      * @param samples Number of samples to average (default: 10).
-     *                Restricted to max 255 (uint8_t) to prevent execution blocking.
      * @return Average raw 24-bit ADC code, or CS123X_TIMEOUT_ERROR if all reads fail.
      */
-    int32_t read_average(uint8_t samples = 10);
+    int32_t read_average(uint16_t samples = 10);
 
     /**
      * @brief Reads the differential input voltage.
      * @param v_ref Reference voltage in Volts (default: 2.5f to follow reference breakout board with TL431).
      * @param samples Number of samples to average (default: 1).
-     *                Restricted to max 255 (uint8_t) to prevent execution blocking.
      * @return The differential input voltage, or NAN if all reads fail.
      */
-    float read_voltage(float v_ref = 2.5f, uint8_t samples = 1);
+    float read_voltage(float v_ref = 2.5f, uint16_t samples = 1);
 
     /**
      * @brief Sets the zero point (tare) by averaging current readings at no load.
      * @param samples Number of samples to average (default: 10).
-     *                Restricted to max 255 (uint8_t) to prevent execution blocking.
      * @return true if tare was set successfully, false on hardware timeout.
      */
-    bool tare(uint8_t samples = 10);
+    bool tare(uint16_t samples = 10);
 
     /**
      * @brief Calculates and sets the scale factor using a known calibration weight.
      * @param known_weight The weight applied to the scale in desired units (e.g., grams).
      * @param samples Number of samples to average (default: 10).
-     *                Restricted to max 255 (uint8_t) to prevent execution blocking.
      * @return true if calibration succeeded, false on timeout, invalid weight (<= 0), or scale == 0.
      */
-    bool calibrate_scale(float known_weight, uint8_t samples = 10);
+    bool calibrate_scale(float known_weight, uint16_t samples = 10);
 
     /**
      * @brief Reads average ADC value and subtracts the tare offset.
      * @param samples Number of samples to average (default: 1).
-     *                Restricted to max 255 (uint8_t) to prevent execution blocking.
      * @return Raw ADC code minus offset, or CS123X_TIMEOUT_ERROR on hardware timeout.
      */
-    int32_t get_value(uint8_t samples = 1);
+    int32_t get_value(uint16_t samples = 1);
 
     /**
      * @brief Calculates the weight in physical units (e.g., grams, kg).
      * @param samples Number of samples to average (default: 1).
-     *                Restricted to max 255 (uint8_t) to prevent execution blocking.
      * @return Weight in physical units, or NAN if uncalibrated (scale == 0) or on timeout.
      */
-    float get_units(uint8_t samples = 1);
+    float get_units(uint16_t samples = 1);
 
     /// @brief Manually sets the tare offset directly (e.g., restored from EEPROM/Flash).
     void set_offset(int32_t offset) {
@@ -391,12 +385,11 @@ class cs123x {
     /**
      * @brief Reads internal temperature sensor and calculates temperature in Celsius.
      * @param samples Number of ADC readings to average for noise reduction (default: 1).
-     *                Restricted to max 255 (uint8_t) to prevent execution blocking.
      * @param verify If true, reads back register to confirm configuration.
      * @return Temperature in °C, or `NAN` if uncalibrated, on hardware timeout,
      *         or if channel switching/restoration fails.
      */
-    float read_temperature(uint8_t samples = 1, bool verify = true);
+    float read_temperature(uint16_t samples = 1, bool verify = true);
 };
 
 #endif /* CS123X_CORE_H */
