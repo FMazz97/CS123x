@@ -71,6 +71,265 @@ uint32_t cs123x::get_timeout_ms() const {
     return timeouts[_rate & 0x03];
 }
 
+bool cs123x::set_config(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify) {
+    if (channel > CS123X_CH_SHORT) return false;  // Reject values > 3
+    if (gain > CS123X_GAIN_128) return false;     // Reject values > 3
+    if (rate > CS123X_RATE_1280Hz) return false;  // Reject values > 3
+
+    // Block Channel B selection on single-channel chip (CS1237)
+    if (_cs123x_type == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) return false;
+
+    // Backups value for rollback
+    CS123X_Channel current_channel = _channel;
+    CS123X_Gain current_gain = _gain;
+    CS123X_Gain current_base_gain = _base_gain;
+    CS123X_Rate current_rate = _rate;
+
+    _channel = channel;
+    _base_gain = gain;
+    _gain = (channel == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain;
+    _rate = rate;
+
+    if (read_val_and_write_register(verify) >= CS123X_TIMEOUT_ERROR) {
+        // Rollback to previous value in case of fail readback
+        _channel = current_channel;
+        _gain = current_gain;
+        _base_gain = current_base_gain;
+        _rate = current_rate;
+        return false;
+    }
+    return true;
+}
+
+bool cs123x::set_ref(CS123X_IntRef int_ref, bool verify) {
+    if (int_ref > CS123X_INT_REF_OFF) return false;  // Reject values > 1
+
+    CS123X_IntRef current_ref = _int_ref;
+    _int_ref = int_ref;
+
+    if (read_val_and_write_register(verify) >= CS123X_TIMEOUT_ERROR) {
+        _int_ref = current_ref;  // Rollback
+        return false;
+    }
+    return true;
+}
+
+int32_t cs123x::force_read() {
+    int32_t value = 0;
+    CS123X_CRITICAL_VAR();
+    CS123X_ENTER_CRITICAL();
+
+    value = read_bits(24);
+    void_pulses(3);
+
+    CS123X_EXIT_CRITICAL();
+
+    // fix negative value from 24 to 32 bit
+    if (value & 0x800000) value |= 0xFF000000;
+
+    return value;
+}
+
+int32_t cs123x::read() {
+    if (!wait_ready(true)) return CS123X_TIMEOUT_ERROR;
+    return force_read();
+}
+
+int32_t cs123x::read_average(uint16_t samples) {
+    if (samples <= 1) {
+        return read();
+    }
+
+    int64_t sum = 0;
+    uint16_t valid_count = 0;
+    // A throttle is required only at high sample rates (640/1280 Hz), because wait_ready()
+    // never yields at those speeds, if readings proceed correctly.
+    // At low rates (10/40 Hz), wait_ready() already yields regularly, so no extra throttle is needed.
+    bool need_yield = (_rate == CS123X_RATE_640Hz || _rate == CS123X_RATE_1280Hz);
+    uint32_t last_yield = CS123X_MILLIS();
+
+    for (uint16_t i = 0; i < samples; ++i) {
+        int32_t raw = read();
+
+        if (raw != CS123X_TIMEOUT_ERROR) {
+            sum += raw;
+            valid_count++;
+        }
+        if (need_yield) {
+            if (CS123X_MILLIS() - last_yield >= 1000) {
+                CS123X_YIELD();
+                last_yield = CS123X_MILLIS();
+            }
+        }
+    }
+
+    if (valid_count == 0) {
+        return CS123X_TIMEOUT_ERROR;
+    }
+
+    return static_cast<int32_t>(sum / valid_count);
+}
+
+float cs123x::read_voltage(float v_ref, uint16_t samples) {
+    int32_t raw = read_average(samples);
+    if (raw == CS123X_TIMEOUT_ERROR) return NAN;
+
+    static constexpr uint8_t gain_multipliers[4] = {1, 2, 64, 128};
+    uint32_t denom = static_cast<uint32_t>(CS123X_MAX_VALUE) * 2 * gain_multipliers[_gain & 0x03];
+    return static_cast<float>(raw) * v_ref / denom;
+}
+
+CS123X_DualReading cs123x::read_dual_channel(CS123X_Channel channel1, CS123X_Channel channel2,
+                                             CS123X_Gain gain1, CS123X_Gain gain2,
+                                             bool verify) {
+    bool ch1_invalid = (channel1 > CS123X_CH_SHORT) || (gain1 > CS123X_GAIN_128) ||
+                       (_cs123x_type == CS123X_TYPE_CS1237 && channel1 == CS123X_CH_B);
+
+    bool ch2_invalid = (channel2 > CS123X_CH_SHORT) || (gain2 > CS123X_GAIN_128) ||
+                       (_cs123x_type == CS123X_TYPE_CS1237 && channel2 == CS123X_CH_B);
+    if (ch1_invalid || ch2_invalid) {
+        return {
+            ch1_invalid ? CS123X_INVALID_PARAM : 0,
+            ch2_invalid ? CS123X_INVALID_PARAM : 0};
+    }
+
+    // Effective gains to be set
+    CS123X_Gain eff_gain1 = (channel1 == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain1;
+    CS123X_Gain eff_gain2 = (channel2 == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain2;
+
+    // ensure correct configuration was applied
+    if (_channel != channel1 || _gain != eff_gain1) {
+        if (!set_config(channel1, eff_gain1, _rate, verify)) {
+            return {CS123X_SWITCH_ERROR, CS123X_SWITCH_ERROR};
+        }
+    }
+
+    // Backups value for rollback
+    CS123X_Channel current_channel = _channel;
+    CS123X_Gain current_gain = _gain;
+    CS123X_Gain current_base_gain = _base_gain;
+
+    // Prepare configuration for switch channel after reading
+    _channel = channel2;
+    _gain = eff_gain2;
+    _base_gain = gain2;
+
+    CS123X_DualReading result;
+    result.ch1 = read_val_and_write_register(verify);
+    if (result.ch1 >= CS123X_TIMEOUT_ERROR) {
+        _channel = current_channel;
+        _gain = current_gain;
+        _base_gain = current_base_gain;
+        result.ch2 = CS123X_SWITCH_ERROR;
+        return result;
+    }
+
+    // Backups value for rollback
+    current_channel = _channel;
+    current_gain = _gain;
+    current_base_gain = _base_gain;
+
+    // Restore configuration to 1st channel after reading
+    _channel = channel1;
+    _gain = eff_gain1;
+    _base_gain = gain1;
+
+    result.ch2 = read_val_and_write_register(verify);
+    if (result.ch2 >= CS123X_TIMEOUT_ERROR) {
+        _channel = current_channel;
+        _gain = current_gain;
+        _base_gain = current_base_gain;
+        return result;
+    }
+
+    return result;
+}
+
+bool cs123x::tare(uint16_t samples) {
+    int32_t raw = read_average(samples);
+    if (raw == CS123X_TIMEOUT_ERROR) return false;
+
+    _offset = raw;
+    return true;
+}
+
+bool cs123x::calibrate_scale(float known_weight, uint16_t samples) {
+    if (known_weight <= 0.0f) return false;  // Avoid negative weight
+
+    int32_t raw = read_average(samples);
+    if (raw == CS123X_TIMEOUT_ERROR) return false;
+
+    int32_t delta_raw = raw - _offset;
+
+    if (delta_raw == 0) return false;  // Avoid to divide by 0 in get_units()
+
+    _scale = static_cast<float>(delta_raw) / known_weight;
+    return true;
+}
+
+int32_t cs123x::get_value(uint16_t samples) {
+    int32_t raw = read_average(samples);
+    if (raw == CS123X_TIMEOUT_ERROR) {
+        return CS123X_TIMEOUT_ERROR;
+    }
+    return raw - _offset;
+}
+
+float cs123x::get_units(uint16_t samples) {
+    if (_scale == 0.0f) return NAN;  // Avoid to divide by 0, scale not calibrated
+
+    int32_t val = get_value(samples);
+    if (val == CS123X_TIMEOUT_ERROR) return NAN;
+
+    return static_cast<float>(val) / _scale;
+}
+
+bool cs123x::set_temp_calibration(float ref_temp_c) {
+    CS123X_Channel previous_channel = _channel;
+
+    if (previous_channel != CS123X_CH_TEMP) {
+        if (!set_ch(CS123X_CH_TEMP)) return false;
+    }
+
+    int32_t raw_code = read();
+
+    if (previous_channel != CS123X_CH_TEMP) {
+        if (!set_ch(previous_channel)) return false;  // Fallback exit
+    }
+
+    if (raw_code == CS123X_TIMEOUT_ERROR) return false;
+
+    _ref_temp_c = ref_temp_c;
+    _ref_code = raw_code;
+    return true;
+}
+
+void cs123x::set_temp_calibration(float ref_temp_c, int32_t ref_code) {
+    _ref_temp_c = ref_temp_c;
+    _ref_code = ref_code;
+}
+
+float cs123x::read_temperature(uint16_t samples, bool verify) {
+    if (_ref_code == 0) return NAN;  // Uncalibrated state _ref_code = 0 should be at 0K, impossible
+
+    CS123X_Channel previous_channel = _channel;
+
+    if (previous_channel != CS123X_CH_TEMP) {
+        if (!set_ch(CS123X_CH_TEMP, verify)) return NAN;
+    }
+
+    int32_t raw_code = read_average(samples);
+
+    if (previous_channel != CS123X_CH_TEMP) {
+        if (!set_ch(previous_channel, verify)) return NAN;  // Fallback exit
+    }
+
+    if (raw_code == CS123X_TIMEOUT_ERROR) return NAN;
+
+    // B = Yb * (273.15 + Ta) / Ya - 273.15
+    return (static_cast<float>(raw_code) * (273.15f + _ref_temp_c)) / _ref_code - 273.15f;
+}
+
 bool cs123x::wait_ready(bool status) {
     uint32_t timeout = get_timeout_ms();
     uint8_t no_yield_zone((timeout > 100) ? 100 : 50);
@@ -208,263 +467,4 @@ void cs123x::void_pulses(uint8_t count) {
         CS123X_SCLK_LOW();
         CS123X_BIT_DELAY();
     }
-}
-
-bool cs123x::set_config(CS123X_Channel channel, CS123X_Gain gain, CS123X_Rate rate, bool verify) {
-    if (channel > CS123X_CH_SHORT) return false;  // Reject values > 3
-    if (gain > CS123X_GAIN_128) return false;     // Reject values > 3
-    if (rate > CS123X_RATE_1280Hz) return false;  // Reject values > 3
-
-    // Block Channel B selection on single-channel chip (CS1237)
-    if (_cs123x_type == CS123X_TYPE_CS1237 && channel == CS123X_CH_B) return false;
-
-    // Backups value for rollback
-    CS123X_Channel current_channel = _channel;
-    CS123X_Gain current_gain = _gain;
-    CS123X_Gain current_base_gain = _base_gain;
-    CS123X_Rate current_rate = _rate;
-
-    _channel = channel;
-    _base_gain = gain;
-    _gain = (channel == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain;
-    _rate = rate;
-
-    if (read_val_and_write_register(verify) >= CS123X_TIMEOUT_ERROR) {
-        // Rollback to previous value in case of fail readback
-        _channel = current_channel;
-        _gain = current_gain;
-        _base_gain = current_base_gain;
-        _rate = current_rate;
-        return false;
-    }
-    return true;
-}
-
-bool cs123x::set_ref(CS123X_IntRef int_ref, bool verify) {
-    if (int_ref > CS123X_INT_REF_OFF) return false;  // Reject values > 1
-
-    CS123X_IntRef current_ref = _int_ref;
-    _int_ref = int_ref;
-
-    if (read_val_and_write_register(verify) >= CS123X_TIMEOUT_ERROR) {
-        _int_ref = current_ref;  // Rollback
-        return false;
-    }
-    return true;
-}
-
-int32_t cs123x::force_read() {
-    int32_t value = 0;
-    CS123X_CRITICAL_VAR();
-    CS123X_ENTER_CRITICAL();
-
-    value = read_bits(24);
-    void_pulses(3);
-
-    CS123X_EXIT_CRITICAL();
-
-    // fix negative value from 24 to 32 bit
-    if (value & 0x800000) value |= 0xFF000000;
-
-    return value;
-}
-
-int32_t cs123x::read() {
-    if (!wait_ready(true)) return CS123X_TIMEOUT_ERROR;
-    return force_read();
-}
-
-CS123X_DualReading cs123x::read_dual_channel(CS123X_Channel channel1, CS123X_Channel channel2,
-                                             CS123X_Gain gain1, CS123X_Gain gain2,
-                                             bool verify) {
-    bool ch1_invalid = (channel1 > CS123X_CH_SHORT) || (gain1 > CS123X_GAIN_128) ||
-                       (_cs123x_type == CS123X_TYPE_CS1237 && channel1 == CS123X_CH_B);
-
-    bool ch2_invalid = (channel2 > CS123X_CH_SHORT) || (gain2 > CS123X_GAIN_128) ||
-                       (_cs123x_type == CS123X_TYPE_CS1237 && channel2 == CS123X_CH_B);
-    if (ch1_invalid || ch2_invalid) {
-        return {
-            ch1_invalid ? CS123X_INVALID_PARAM : 0,
-            ch2_invalid ? CS123X_INVALID_PARAM : 0};
-    }
-
-    // Effective gains to be set
-    CS123X_Gain eff_gain1 = (channel1 == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain1;
-    CS123X_Gain eff_gain2 = (channel2 == CS123X_CH_TEMP) ? CS123X_GAIN_1 : gain2;
-
-    // ensure correct configuration was applied
-    if (_channel != channel1 || _gain != eff_gain1) {
-        if (!set_config(channel1, eff_gain1, _rate, verify)) {
-            return {CS123X_SWITCH_ERROR, CS123X_SWITCH_ERROR};
-        }
-    }
-
-    // Backups value for rollback
-    CS123X_Channel current_channel = _channel;
-    CS123X_Gain current_gain = _gain;
-    CS123X_Gain current_base_gain = _base_gain;
-
-    // Prepare configuration for switch channel after reading
-    _channel = channel2;
-    _gain = eff_gain2;
-    _base_gain = gain2;
-
-    CS123X_DualReading result;
-    result.ch1 = read_val_and_write_register(verify);
-    if (result.ch1 >= CS123X_TIMEOUT_ERROR) {
-        _channel = current_channel;
-        _gain = current_gain;
-        _base_gain = current_base_gain;
-        result.ch2 = CS123X_SWITCH_ERROR;
-        return result;
-    }
-
-    // Backups value for rollback
-    current_channel = _channel;
-    current_gain = _gain;
-    current_base_gain = _base_gain;
-
-    // Restore configuration to 1st channel after reading
-    _channel = channel1;
-    _gain = eff_gain1;
-    _base_gain = gain1;
-
-    result.ch2 = read_val_and_write_register(verify);
-    if (result.ch2 >= CS123X_TIMEOUT_ERROR) {
-        _channel = current_channel;
-        _gain = current_gain;
-        _base_gain = current_base_gain;
-        return result;
-    }
-
-    return result;
-}
-
-int32_t cs123x::read_average(uint16_t samples) {
-    if (samples <= 1) {
-        return read();
-    }
-
-    int64_t sum = 0;
-    uint16_t valid_count = 0;
-    // A throttle is required only at high sample rates (640/1280 Hz), because wait_ready()
-    // never yields at those speeds, if readings proceed correctly.
-    // At low rates (10/40 Hz), wait_ready() already yields regularly, so no extra throttle is needed.
-    bool need_yield = (_rate == CS123X_RATE_640Hz || _rate == CS123X_RATE_1280Hz);
-    uint32_t last_yield = CS123X_MILLIS();
-
-    for (uint16_t i = 0; i < samples; ++i) {
-        int32_t raw = read();
-
-        if (raw != CS123X_TIMEOUT_ERROR) {
-            sum += raw;
-            valid_count++;
-        }
-        if (need_yield) {
-            if (CS123X_MILLIS() - last_yield >= 1000) {
-                CS123X_YIELD();
-                last_yield = CS123X_MILLIS();
-            }
-        }
-    }
-
-    if (valid_count == 0) {
-        return CS123X_TIMEOUT_ERROR;
-    }
-
-    return static_cast<int32_t>(sum / valid_count);
-}
-
-float cs123x::read_voltage(float v_ref, uint16_t samples) {
-    int32_t raw = read_average(samples);
-    if (raw == CS123X_TIMEOUT_ERROR) return NAN;
-
-    static constexpr uint8_t gain_multipliers[4] = {1, 2, 64, 128};
-    uint32_t denom = static_cast<uint32_t>(CS123X_MAX_VALUE) * 2 * gain_multipliers[_gain & 0x03];
-    return static_cast<float>(raw) * v_ref / denom;
-}
-
-bool cs123x::tare(uint16_t samples) {
-    int32_t raw = read_average(samples);
-    if (raw == CS123X_TIMEOUT_ERROR) return false;
-
-    _offset = raw;
-    return true;
-}
-
-bool cs123x::calibrate_scale(float known_weight, uint16_t samples) {
-    if (known_weight <= 0.0f) return false;  // Avoid negative weight
-
-    int32_t raw = read_average(samples);
-    if (raw == CS123X_TIMEOUT_ERROR) return false;
-
-    int32_t delta_raw = raw - _offset;
-
-    if (delta_raw == 0) return false;  // Avoid to divide by 0 in get_units()
-
-    _scale = static_cast<float>(delta_raw) / known_weight;
-    return true;
-}
-
-int32_t cs123x::get_value(uint16_t samples) {
-    int32_t raw = read_average(samples);
-    if (raw == CS123X_TIMEOUT_ERROR) {
-        return CS123X_TIMEOUT_ERROR;
-    }
-    return raw - _offset;
-}
-
-float cs123x::get_units(uint16_t samples) {
-    if (_scale == 0.0f) return NAN;  // Avoid to divide by 0, scale not calibrated
-
-    int32_t val = get_value(samples);
-    if (val == CS123X_TIMEOUT_ERROR) return NAN;
-
-    return static_cast<float>(val) / _scale;
-}
-
-bool cs123x::set_temp_calibration(float ref_temp_c) {
-    CS123X_Channel previous_channel = _channel;
-
-    if (previous_channel != CS123X_CH_TEMP) {
-        if (!set_ch(CS123X_CH_TEMP)) return false;
-    }
-
-    int32_t raw_code = read();
-
-    if (previous_channel != CS123X_CH_TEMP) {
-        if (!set_ch(previous_channel)) return false;  // Fallback exit
-    }
-
-    if (raw_code == CS123X_TIMEOUT_ERROR) return false;
-
-    _ref_temp_c = ref_temp_c;
-    _ref_code = raw_code;
-    return true;
-}
-
-void cs123x::set_temp_calibration(float ref_temp_c, int32_t ref_code) {
-    _ref_temp_c = ref_temp_c;
-    _ref_code = ref_code;
-}
-
-float cs123x::read_temperature(uint16_t samples, bool verify) {
-    if (_ref_code == 0) return NAN;  // Uncalibrated state _ref_code = 0 should be at 0K, impossible
-
-    CS123X_Channel previous_channel = _channel;
-
-    if (previous_channel != CS123X_CH_TEMP) {
-        if (!set_ch(CS123X_CH_TEMP, verify)) return NAN;
-    }
-
-    int32_t raw_code = read_average(samples);
-
-    if (previous_channel != CS123X_CH_TEMP) {
-        if (!set_ch(previous_channel, verify)) return NAN;  // Fallback exit
-    }
-
-    if (raw_code == CS123X_TIMEOUT_ERROR) return NAN;
-
-    // B = Yb * (273.15 + Ta) / Ya - 273.15
-    return (static_cast<float>(raw_code) * (273.15f + _ref_temp_c)) / _ref_code - 273.15f;
 }

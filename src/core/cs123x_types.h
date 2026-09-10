@@ -119,12 +119,6 @@ struct CS123X_DualReading {
 // Hardware Constants & Sentinel Values
 // =============================================================================
 
-/** @brief Minimum 24-bit output value (0x800000 in 2s complement) */
-constexpr int32_t CS123X_MIN_VALUE = 0xFF800000;
-
-/** @brief Maximum 24-bit output value (+0x7FFFFF in 2s complement) */
-constexpr int32_t CS123X_MAX_VALUE = 0x007FFFFF;
-
 /** @brief Sentinel error value returned by read() on hardware communication timeout */
 constexpr int32_t CS123X_TIMEOUT_ERROR = 0x7FFFFFF0;
 
@@ -140,5 +134,11 @@ constexpr int32_t CS123X_SWITCH_ERROR = 0x7FFFFFF1;
 constexpr int32_t CS123X_INVALID_PARAM = 0x7FFFFFF2;
 
 // New sentinels: keep contiguous & >= CS123X_TIMEOUT_ERROR (for function(verify) path errors); below it, add separately.
+
+/** @brief Minimum 24-bit output value (0x800000 in 2s complement) */
+constexpr int32_t CS123X_MIN_VALUE = 0xFF800000;
+
+/** @brief Maximum 24-bit output value (+0x7FFFFF in 2s complement) */
+constexpr int32_t CS123X_MAX_VALUE = 0x007FFFFF;
 
 #endif /* CS123X_TYPES_H */
