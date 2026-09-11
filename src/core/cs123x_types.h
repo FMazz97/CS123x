@@ -85,16 +85,16 @@ struct CS123X_Config {
     /** @brief Data output rate selection*/
     CS123X_Rate rate;
     /** @brief Internal voltage reference configuration. */
-    CS123X_IntRef intRef;
+    CS123X_IntRef int_ref;
 
     /// Compares two configurations for equality.
     bool operator==(const CS123X_Config& config) const {
-        return channel == config.channel && gain == config.gain && rate == config.rate && intRef == config.intRef;
+        return channel == config.channel && gain == config.gain && rate == config.rate && int_ref == config.int_ref;
     }
 
     /// Compares two configurations for inequality.
     bool operator!=(const CS123X_Config& config) const {
-        return channel != config.channel || gain != config.gain || rate != config.rate || intRef != config.intRef;
+        return channel != config.channel || gain != config.gain || rate != config.rate || int_ref != config.int_ref;
     }
 };
 
@@ -117,6 +117,14 @@ struct CS123X_DualReading {
     bool operator!=(const CS123X_DualReading& dualReading) const {
         return ch1 != dualReading.ch1 || ch2 != dualReading.ch2;
     }
+};
+
+/**
+ * @brief Temperature calibration parameters for the CS123x internal sensor.
+ */
+struct CS123X_TempParams {
+    float ref_temp_c_degrees; ///< Reference temperature in °C during sensor calibration.
+    int32_t ref_temp_raw;    ///< Raw ADC code recorded at reference temperature (0 = uncalibrated).
 };
 
 // =============================================================================

@@ -10,6 +10,7 @@ CS123X_Rate	KEYWORD1
 CS123X_IntRef	KEYWORD1
 CS123X_Config	KEYWORD1
 CS123X_DualReading	KEYWORD1
+CS123X_TempParams	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -31,21 +32,23 @@ getGain	KEYWORD2
 getBaseGain	KEYWORD2
 setCh	KEYWORD2
 getCh	KEYWORD2
-forceRead	KEYWORD2
+readNow	KEYWORD2
 read	KEYWORD2
 readDualChannel	KEYWORD2
 readAverage	KEYWORD2
 readVoltage	KEYWORD2
 tare	KEYWORD2
 calibrateScale	KEYWORD2
-getValue	KEYWORD2
-getUnits	KEYWORD2
+readNetCounts	KEYWORD2
+readNetUnits	KEYWORD2
 setOffset	KEYWORD2
 getOffset	KEYWORD2
 setScale	KEYWORD2
 getScale	KEYWORD2
+calibrateTemp	KEYWORD2
+readTemp	KEYWORD2
 setTempCalibration	KEYWORD2
-readTemperature	KEYWORD2
+getTempCalibration	KEYWORD2
 
 #######################################
 # Constants and Enums (LITERAL1)

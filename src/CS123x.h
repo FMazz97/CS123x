@@ -54,7 +54,7 @@ class CS123x {
     bool setCh(CS123X_Channel channel, bool verify = true) { return _core.set_ch(channel, verify); }
     CS123X_Channel getCh() const { return _core.get_ch(); }
 
-    int32_t forceRead() { return _core.force_read(); }
+    int32_t readNow() { return _core.read_now(); }
     int32_t read() { return _core.read(); }
     int32_t readAverage(uint16_t samples = 10) { return _core.read_average(samples); }
     float readVoltage(float vRef = 2.5f, uint16_t samples = 1) { return _core.read_voltage(vRef, samples); }
@@ -73,19 +73,26 @@ class CS123x {
         return _core.read_dual_channel(channel2, verify);
     }
 
-    bool tare(uint16_t samples = 10) { return _core.tare(samples); }
-    bool calibrateScale(float knownWeight, uint16_t samples = 10) { return _core.calibrate_scale(knownWeight, samples); }
-    int32_t getValue(uint16_t samples = 1) { return _core.get_value(samples); }
-    float getUnits(uint16_t samples = 1) { return _core.get_units(samples); }
+    int32_t readAverage(uint16_t samples = 10) { return _core.read_average(samples); }
+    float readVoltage(float vRef = 2.5f, uint8_t samples = 1) { return _core.read_voltage(vRef, samples); }
+
+    bool tare(uint8_t samples = 10) { return _core.tare(samples); }
+    bool calibrateScale(float knownWeight, uint8_t samples = 10) { return _core.calibrate_scale(knownWeight, samples); }
+
+    int32_t readNetCounts(uint8_t samples = 1) { return _core.read_net_counts(samples); }
+    float readNetUnits(uint8_t samples = 1) { return _core.read_net_units(samples); }
 
     void setOffset(int32_t offset) { _core.set_offset(offset); }
     int32_t getOffset() const { return _core.get_offset(); }
     void setScale(float scale) { _core.set_scale(scale); }
     float getScale() const { return _core.get_scale(); }
 
-    bool setTempCalibration(float refTempC) { return _core.set_temp_calibration(refTempC); }
-    void setTempCalibration(float refTempC, int32_t refCode) { _core.set_temp_calibration(refTempC, refCode); }
-    float readTemperature(uint16_t samples = 1, bool verify = true) { return _core.read_temperature(samples, verify); }
+    bool calibrateTemp(float refTempCDegrees) { return _core.calibrate_temp(refTempCDegrees); }
+
+    float readTemp(uint8_t samples = 1, bool verify = true) { return _core.read_temp(samples, verify); }
+
+    void setTempCalibration(float refTempCDegrees, int32_t refTempRaw) { _core.set_temp_calibration(refTempCDegrees, refTempRaw); }
+    CS123X_TempParams getTempCalibration() const { return _core.get_temp_calibration(); }
 };
 
 #endif /* CS123X_H */

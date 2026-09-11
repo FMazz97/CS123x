@@ -119,7 +119,7 @@ bool cs123x::set_ref(CS123X_IntRef int_ref, bool verify) {
     return true;
 }
 
-int32_t cs123x::force_read() {
+int32_t cs123x::read_now() {
     int32_t value = 0;
     CS123X_CRITICAL_VAR();
     CS123X_ENTER_CRITICAL();
@@ -137,7 +137,7 @@ int32_t cs123x::force_read() {
 
 int32_t cs123x::read() {
     if (!wait_ready(true)) return CS123X_TIMEOUT_ERROR;
-    return force_read();
+    return read_now();
 }
 
 int32_t cs123x::read_average(uint16_t samples) {
@@ -272,7 +272,7 @@ bool cs123x::calibrate_scale(float known_weight, uint16_t samples) {
     return true;
 }
 
-int32_t cs123x::get_value(uint16_t samples) {
+int32_t cs123x::read_net_counts(uint16_t samples) {
     int32_t raw = read_average(samples);
     if (raw == CS123X_TIMEOUT_ERROR) {
         return CS123X_TIMEOUT_ERROR;
@@ -280,16 +280,16 @@ int32_t cs123x::get_value(uint16_t samples) {
     return raw - _offset;
 }
 
-float cs123x::get_units(uint16_t samples) {
+float cs123x::read_net_units(uint16_t samples) {
     if (_scale == 0.0f) return NAN;  // Avoid to divide by 0, scale not calibrated
 
-    int32_t val = get_value(samples);
+    int32_t val = read_net_counts(samples);
     if (val == CS123X_TIMEOUT_ERROR) return NAN;
 
     return static_cast<float>(val) / _scale;
 }
 
-bool cs123x::set_temp_calibration(float ref_temp_c) {
+bool cs123x::calibrate_temp(float ref_temp_c_degrees) {
     CS123X_Channel previous_channel = _channel;
 
     if (previous_channel != CS123X_CH_TEMP) {
@@ -304,18 +304,18 @@ bool cs123x::set_temp_calibration(float ref_temp_c) {
 
     if (raw_code == CS123X_TIMEOUT_ERROR) return false;
 
-    _ref_temp_c = ref_temp_c;
-    _ref_code = raw_code;
+    _ref_temp_c_degrees = ref_temp_c_degrees;
+    _ref_temp_raw = raw_code;
     return true;
 }
 
-void cs123x::set_temp_calibration(float ref_temp_c, int32_t ref_code) {
-    _ref_temp_c = ref_temp_c;
-    _ref_code = ref_code;
+void cs123x::set_temp_calibration(float ref_temp_c_degrees, int32_t ref_temp_raw) {
+    _ref_temp_c_degrees = ref_temp_c_degrees;
+    _ref_temp_raw = ref_temp_raw;
 }
 
-float cs123x::read_temperature(uint16_t samples, bool verify) {
-    if (_ref_code == 0) return NAN;  // Uncalibrated state _ref_code = 0 should be at 0K, impossible
+float cs123x::read_temp(uint16_t samples, bool verify) {
+    if (_ref_temp_raw == 0) return NAN;  // Uncalibrated state _ref_temp_raw = 0 should be at 0K, impossible
 
     CS123X_Channel previous_channel = _channel;
 
@@ -332,7 +332,7 @@ float cs123x::read_temperature(uint16_t samples, bool verify) {
     if (raw_code == CS123X_TIMEOUT_ERROR) return NAN;
 
     // B = Yb * (273.15 + Ta) / Ya - 273.15
-    return (static_cast<float>(raw_code) * (273.15f + _ref_temp_c)) / _ref_code - 273.15f;
+    return (static_cast<float>(raw_code) * (273.15f + _ref_temp_c_degrees)) / _ref_temp_raw - 273.15f;
 }
 
 bool cs123x::wait_ready(bool status) {
