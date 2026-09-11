@@ -28,7 +28,8 @@
     "url": "https://github.com/FMazz97/CS123x.git"
   },
   "frameworks": [
-    "arduino"
+    "arduino",
+    "espidf"
   ],
   "platforms": "*"
 }
