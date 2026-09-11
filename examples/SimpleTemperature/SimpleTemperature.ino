@@ -1,9 +1,9 @@
 /// @file SimpleTemperature.ino
 /// @brief Internal temperature sensor calibration and reading example.
-/// @details Demonstrates live single-point ambient temperature calibration and 
+/// @details Demonstrates live single-point ambient temperature calibration and
 ///          continuous temperature reading in °C using automatic channel switching.
 /// @warning TL431 Current Limitation: Stock modules are current-limited by R1 (1 kΩ).
-///          For low-impedance sensors (e.g., 350 Ω load cells), reduce R1 by adding a resistor 
+///          For low-impedance sensors (e.g., 350 Ω load cells), reduce R1 by adding a resistor
 ///          between DVDD and AVDD. For full details, see the README section
 ///          "Current Limit for Low-Impedance Sensors":
 ///          https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors
@@ -13,11 +13,16 @@
 /// @example SimpleTemperature.ino
 
 #include <Arduino.h>
+
 #include "CS123x.h"
 
-// Hardware Pin Configuration
+// Test pin configuration (adjust according to your hardware setup)
+#ifndef DOUT_PIN
 #define DOUT_PIN 4
+#endif
+#ifndef SCLK_PIN
 #define SCLK_PIN 5
+#endif
 
 // Known ambient room temperature during calibration (in °C)
 #define CURRENT_ROOM_TEMP 25.0f
@@ -25,61 +30,60 @@
 CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
 
 void setup() {
-  Serial.begin(115200);
-  while (!Serial && millis() < 2000)
-    ;
+    Serial.begin(115200);
+    while (!Serial && millis() < 2000);
 
-  Serial.println(F("\n================================================"));
-  Serial.println(F("   CS123x TEMPERATURE SENSOR CALIBRATION        "));
-  Serial.println(F("================================================"));
+    Serial.println(F("\n================================================"));
+    Serial.println(F("   CS123x TEMPERATURE SENSOR CALIBRATION        "));
+    Serial.println(F("================================================"));
 
-  // ---------------------------------------------------------------------------
-  // 1. INITIALIZATION
-  // ---------------------------------------------------------------------------
-  Serial.println(F("\n[1] INITIALIZATION TEST (begin)"));
-  while (!adc.begin()) {
-    Serial.println(F("    [WARN] Initialization failed/timeout. Retrying in 500ms..."));
-    delay(500);
-  }
-  Serial.println(F("    [OK] ADC initialized and configuration verified."));
+    // ---------------------------------------------------------------------------
+    // 1. INITIALIZATION
+    // ---------------------------------------------------------------------------
+    Serial.println(F("\n[1] INITIALIZATION TEST (begin)"));
+    while (!adc.begin()) {
+        Serial.println(F("    [WARN] Initialization failed/timeout. Retrying in 500ms..."));
+        delay(500);
+    }
+    Serial.println(F("    [OK] ADC initialized and configuration verified."));
 
-  // ---------------------------------------------------------------------------
-  // 2. TEMPERATURE SENSOR CALIBRATION
-  // ---------------------------------------------------------------------------
-  Serial.println(F("\n[2] TEMPERATURE CALIBRATION"));
-  Serial.print(F("    Calibrating sensor at current ambient temperature ("));
-  Serial.print(CURRENT_ROOM_TEMP);
-  Serial.println(F(" C)..."));
+    // ---------------------------------------------------------------------------
+    // 2. TEMPERATURE SENSOR CALIBRATION
+    // ---------------------------------------------------------------------------
+    Serial.println(F("\n[2] TEMPERATURE CALIBRATION"));
+    Serial.print(F("    Calibrating sensor at current ambient temperature ("));
+    Serial.print(CURRENT_ROOM_TEMP);
+    Serial.println(F(" C)..."));
 
-  // Option A: Live automatic calibration on-the-fly
-  if (adc.setTempCalibration(CURRENT_ROOM_TEMP)) {
-    Serial.println(F("    [OK] Live temperature calibration succeeded!"));
-  } else {
-    Serial.println(F("    [FAIL] Temperature calibration failed (Timeout)."));
-  }
+    // Option A: Live automatic calibration on-the-fly
+    if (adc.calibrateTemp(CURRENT_ROOM_TEMP)) {
+        Serial.println(F("    [OK] Live temperature calibration succeeded!"));
+    } else {
+        Serial.println(F("    [FAIL] Temperature calibration failed (Timeout)."));
+    }
 
-  /* 
-    Option B: Restoring calibration parameters saved in EEPROM/Flash
-    adc.setTempCalibration(25.0f, 8388608L); 
-  */
+    /*
+      Option B: Restoring calibration parameters saved in EEPROM/Flash
+      adc.setTempCalibration(25.0f, 8388608L);
+    */
 
-  Serial.println(F("\n================================================"));
-  Serial.println(F("        SETUP COMPLETED - STARTING LOOP        "));
-  Serial.println(F("================================================\n"));
+    Serial.println(F("\n================================================"));
+    Serial.println(F("        SETUP COMPLETED - STARTING LOOP        "));
+    Serial.println(F("================================================\n"));
 }
 
 void loop() {
-  // Read temperature in °C (averaged over 5 samples for noise reduction)
-  // Note: readTemperature() handles channel switching and PGA adjustment automatically
-  float tempC = adc.readTemperature(5);
+    // Read temperature in °C (averaged over 5 samples for noise reduction)
+    // Note: readTemperature() handles channel switching and PGA adjustment automatically
+    float tempC = adc.readTemp(5);
 
-  if (isnan(tempC)) {
-    Serial.println(F("[ERROR] Failed to read temperature (Timeout or uncalibrated)."));
-  } else {
-    Serial.print(F("Internal Temperature: "));
-    Serial.print(tempC, 2);
-    Serial.println(F(" °C"));
-  }
+    if (isnan(tempC)) {
+        Serial.println(F("[ERROR] Failed to read temperature (Timeout or uncalibrated)."));
+    } else {
+        Serial.print(F("Internal Temperature: "));
+        Serial.print(tempC, 2);
+        Serial.println(F(" °C"));
+    }
 
-  delay(1000);
+    delay(1000);
 }

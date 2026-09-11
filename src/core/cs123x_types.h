@@ -120,7 +120,7 @@ struct CS123X_DualReading {
  */
 struct CS123X_TempParams {
     float ref_temp_c_degrees; ///< Reference temperature in °C during sensor calibration.
-    uint32_t ref_temp_raw;    ///< Raw ADC code recorded at reference temperature (0 = uncalibrated).
+    int32_t ref_temp_raw;    ///< Raw ADC code recorded at reference temperature (0 = uncalibrated).
 };
 
 // =============================================================================

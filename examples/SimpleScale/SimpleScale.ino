@@ -3,7 +3,7 @@
 /// @details Demonstrates step-by-step zero-point alignment (tare), scale factor calibration
 ///          using a known weight, and continuous weight acquisition in physical units.
 /// @warning TL431 Current Limitation: Stock modules are current-limited by R1 (1 kΩ).
-///          For low-impedance sensors (e.g., 350 Ω load cells), reduce R1 by adding a resistor 
+///          For low-impedance sensors (e.g., 350 Ω load cells), reduce R1 by adding a resistor
 ///          between DVDD and AVDD. For full details, see the README section
 ///          "Current Limit for Low-Impedance Sensors":
 ///          https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors
@@ -16,9 +16,13 @@
 
 #include "CS123x.h"
 
-// Hardware Pin Configuration
+// Test pin configuration (adjust according to your hardware setup)
+#ifndef DOUT_PIN
 #define DOUT_PIN 4
+#endif
+#ifndef SCLK_PIN
 #define SCLK_PIN 5
+#endif
 
 // Reference weight used for calibration (e.g., 100.0 grams, kg, or lbs)
 #define KNOWN_WEIGHT 100.0f
@@ -87,8 +91,8 @@ void setup() {
 
 void loop() {
     // Read weight in calibrated units (averaged over 3 samples)
-    int32_t valueRaw = adc.getValue(3);   // Raw - Offset
-    float weightUnits = adc.getUnits(3);  // (Raw - Offset) / Scale
+    int32_t valueRaw = adc.readNetCounts(3);  // Raw - Offset
+    float weightUnits = adc.readNetUnits(3);  // (Raw - Offset) / Scale
 
     if (isnan(weightUnits)) {
         Serial.println(F("[ERROR] Hardware read timeout!"));

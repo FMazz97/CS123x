@@ -31,6 +31,14 @@
 CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
 CS123X_Config defaultConf = {CS123X_CH_A, CS123X_GAIN_128, CS123X_RATE_10Hz, CS123X_INT_REF_OFF};
 
+void restoreDefaultConfig() {
+    if (adc.getConfig() != defaultConf) {
+        Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
+    } else {
+        Serial.println(F("\n{Default configuration already setted.}"));
+    }
+}
+
 void setup() {
     Serial.begin(115200);
     while (!Serial && millis() < 2000);  // Wait for Serial monitor on native USB boards
@@ -68,11 +76,7 @@ void setup() {
     }
 
     // Restore default confing to proceed with readings
-    if (adc.getConfig() != defaultConf) {
-      Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
-    } else {
-        Serial.println(F("\n{Default configuration already setted.}"));
-    }
+    restoreDefaultConfig();
 
     // ---------------------------------------------------------------------------
     // 3. EXHAUSTIVE DATA RATE TEST (All 4 valid values)
@@ -97,11 +101,7 @@ void setup() {
     }
 
     // Restore default confing to proceed with readings
-    if (adc.getConfig() != defaultConf) {
-      Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
-    } else {
-        Serial.println(F("\n{Default configuration already setted.}"));
-    }
+    restoreDefaultConfig();
 
     // ---------------------------------------------------------------------------
     // 4. EXHAUSTIVE CHANNEL TEST (All 4 valid channels)
@@ -122,11 +122,7 @@ void setup() {
     }
 
     // Restore default confing to proceed with readings
-    if (adc.getConfig() != defaultConf) {
-      Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
-    } else {
-        Serial.println(F("\n{Default configuration already setted.}"));
-    }
+    restoreDefaultConfig();
 
     // ---------------------------------------------------------------------------
     // 5. EXHAUSTIVE INT_REF TEST (On / Off)
@@ -147,11 +143,7 @@ void setup() {
     }
 
     // Restore default confing to proceed with readings
-    if (adc.getConfig() != defaultConf) {
-      Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
-    } else {
-        Serial.println(F("\n{Default configuration already setted.}"));
-    }
+    restoreDefaultConfig();
 
     // ---------------------------------------------------------------------------
     // 6. BATCH CONFIGURATION TEST (setConfig / getConfig)
@@ -170,14 +162,10 @@ void setup() {
     Serial.print(F(" | rate: "));
     Serial.print(snapshot.rate);
     Serial.print(F(" | intRef: "));
-    Serial.println(snapshot.intRef);
+    Serial.println(snapshot.int_ref);
 
     // Restore default confing to proceed with readings
-    if (adc.getConfig() != defaultConf) {
-      Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
-    } else {
-        Serial.println(F("\n{Default configuration already setted.}"));
-    }
+    restoreDefaultConfig();
 
     // ---------------------------------------------------------------------------
     // 7. DUAL-CHANNEL READ TEST (CH_A / CH_TEMP — works on both CS1237 & CS1238)
@@ -193,11 +181,7 @@ void setup() {
     Serial.println(adc.getCh());
 
     // Restore default confing to proceed with readings
-    if (adc.getConfig() != defaultConf) {
-      Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
-    } else {
-        Serial.println(F("\n{Default configuration already setted.}"));
-    }
+    restoreDefaultConfig();
 
     // ---------------------------------------------------------------------------
     // 8. OFFSET, SCALE & CALIBRATION METHODS TEST
@@ -227,21 +211,28 @@ void setup() {
     Serial.println(adc.getScale());
 
     // ---------------------------------------------------------------------------
-    // 9. TEMPERATURE SENSOR TEST (Overloads)
+    // 9. TEMPERATURE SENSOR TEST
     // ---------------------------------------------------------------------------
     Serial.println(F("\n[9] TEMPERATURE SENSOR TEST"));
 
-    // Overload 1: Manual calibration
+    // Manual calibration
     adc.setTempCalibration(25.0f, 8388608L);
     Serial.println(F("    setTempCalibration(25.0C, 8388608L) -> [OK]"));
 
-    // Overload 2: Automatic calibration on-the-fly
-    bool tCal1 = adc.setTempCalibration(25.0f);
+    // Automatic calibration on-the-fly
+    bool tCalAuto  = adc.calibrateTemp(25.0f);
     Serial.print(F("    setTempCalibration(25.0C) -> "));
-    Serial.println(tCal1 ? F("[OK]") : F("[FAIL]"));
+    Serial.println(tCalAuto ? F("[OK]") : F("[FAIL]"));
+
+    // Read calibration parameters
+    CS123X_TempParams tCal = adc.getTempCalibration();
+    Serial.print(F("    getTempCalibration() -> ref_temp_c_degrees: "));
+    Serial.print(tCal.ref_temp_c_degrees);
+    Serial.print(F(" | ref_temp_raw: "));
+    Serial.println(tCal.ref_temp_raw);
 
     // Read temperature value averaged over samples
-    float tempVal = adc.readTemperature(3);
+    float tempVal = adc.readTemp(3);
     Serial.print(F("    readTemperature(3 samples) -> "));
     Serial.print(tempVal);
     Serial.println(F(" C"));
@@ -257,20 +248,10 @@ void setup() {
     Serial.println(F("    powerUp() executed."));
 
     // Restore default confing to proceed with readings
-    if (adc.getConfig() != defaultConf) {
-      Serial.println(adc.setConfig(defaultConf) ? F("\n{Correcly restored default configuration.}") : F("\n{Default configuration not restored.}"));
-    } else {
-        Serial.println(F("\n{Default configuration already setted.}"));
-    }
+    restoreDefaultConfig();
 
     Serial.println(F("\n=================================================="));
-    Serial.println(F("    SETUP TEST COMPLETED"));
-    Serial.println(F("==================================================\n"));
-
-    delay(500);
-
-    Serial.println(F("\n=================================================="));
-    Serial.println(F("    STARTING READ LOOP"));
+    Serial.println(F("    SETUP TEST COMPLETED - STARTING READ LOOP"));
     Serial.println(F("==================================================\n"));
 }
 
@@ -283,19 +264,19 @@ void loop() {
     int32_t rawSingle = adc.read();
     int32_t rawAvg = adc.readAverage(3);
 
-    int32_t valueRaw = adc.getValue(3);   // (Raw - Offset)
-    float weightUnits = adc.getUnits(3);  // (Raw - Offset) / Scale
-    float voltage = adc.readVoltage();    // Differential input voltage (VREF default: 2.5V)
+    int32_t valueRaw = adc.readNetCounts(3);  // (Raw - Offset)
+    float weightUnits = adc.readNetUnits(3);  // (Raw - Offset) / Scale
 
-    float temperature = adc.readTemperature(3);
+    float voltage = adc.readVoltage();  // Differential input voltage (VREF default: 2.5V)
+    float temperature = adc.readTemp(3);
 
     Serial.print(F("Raw: "));
     Serial.print(rawSingle);
     Serial.print(F(" | Avg: "));
     Serial.print(rawAvg);
-    Serial.print(F(" | Value: "));
+    Serial.print(F(" | NetCounts: "));
     Serial.print(valueRaw);
-    Serial.print(F(" | Units: "));
+    Serial.print(F(" | NetUnits: "));
     Serial.print(weightUnits, 2);
     Serial.print(F(" | Voltage: "));
     Serial.print(voltage, 6);
