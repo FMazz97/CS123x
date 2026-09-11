@@ -174,9 +174,9 @@ class cs123x {
     /**
      * @brief Forces an immediate 24-bit reading without waiting for DOUT ready signal.
      * @warning Use only if you have already verified `is_ready()` is true.
-     * @return Signed 32-bit integer (`int32_t`) sign-extended from 24-bit ADC data.
+     * @return Signed 32-bit value obtained by sign-extending the 24-bit ADC code.
      */
-    int32_t force_read();
+    int32_t read_now();
 
     /**
      * @brief Synchronously waits for the ADC to become ready and returns a sign-extended 24-bit reading.
@@ -265,14 +265,14 @@ class cs123x {
      * @param samples Number of samples to average (default: 1).
      * @return Raw ADC code minus offset, or CS123X_TIMEOUT_ERROR on hardware timeout.
      */
-    int32_t get_value(uint16_t samples = 1);
+    int32_t read_net_counts(uint16_t samples = 1);
 
     /**
      * @brief Calculates the weight in physical units (e.g., grams, kg).
      * @param samples Number of samples to average (default: 1).
      * @return Weight in physical units, or NAN if uncalibrated (scale == 0) or on timeout.
      */
-    float get_units(uint16_t samples = 1);
+    float read_net_units(uint16_t samples = 1);
 
     /// @brief Manually sets the tare offset directly (e.g., restored from EEPROM/Flash).
     void set_offset(int32_t offset) {
@@ -296,17 +296,10 @@ class cs123x {
 
     /**
      * @brief Calibrates the temperature sensor live by reading the current raw code from the IC.
-     * @param ref_temp_c Current known ambient/chip temperature in Celsius (e.g., 25.0f).
+     * @param ref_temp_c_degrees Current known ambient/chip temperature in Celsius (e.g., 25.0f).
      * @return true if calibration succeeded, false on hardware timeout.
      */
-    bool set_temp_calibration(float ref_temp_c);
-
-    /**
-     * @brief Manually sets reference parameters (e.g., restored from EEPROM/Flash).
-     * @param ref_temp_c Reference temperature in Celsius.
-     * @param ref_code Raw 24-bit ADC reading associated with ref_temp_c.
-     */
-    void set_temp_calibration(float ref_temp_c, int32_t ref_code);
+    bool calibrate_temp(float ref_temp_c_degrees);
 
     /**
      * @brief Reads internal temperature sensor and calculates temperature in Celsius.
@@ -315,7 +308,23 @@ class cs123x {
      * @return Temperature in °C, or `NAN` if uncalibrated, on hardware timeout,
      *         or if channel switching/restoration fails.
      */
-    float read_temperature(uint16_t samples = 1, bool verify = true);
+    float read_temp(uint16_t samples = 1, bool verify = true);
+
+    /**
+     * @brief Manually sets reference parameters (e.g., restored from EEPROM/Flash).
+     * @param ref_temp_c_degrees Reference temperature in Celsius.
+     * @param ref_temp_raw Raw 24-bit ADC reading associated with ref_temp_c_degrees.
+     */
+    void set_temp_calibration(float ref_temp_c_degrees, int32_t ref_temp_raw);
+
+    /**
+     * @brief Gets the temperature calibration parameters.
+     * @return `CS123X_TempParams` struct containing the calibrated reference pair:
+     *         temperature in °C and its corresponding raw 24‑bit ADC code.
+     */
+    CS123X_TempParams get_temp_calibration() const {
+        return {_ref_temp_c_degrees, _ref_temp_raw};
+    }
 
    private:
     CS123X_Type _cs123x_type;  ///< ADC chip model (CS123X_TYPE_...)
@@ -339,8 +348,8 @@ class cs123x {
     int32_t _offset = 0;  ///< Raw ADC zero-load offset in counts (tare value)
     float _scale = 1.0f;  ///< Scale factor (ADC counts per physical unit)
 
-    float _ref_temp_c = 25.0f;  ///< Ambient reference temperature in °C during sensor calibration
-    int32_t _ref_code = 0;      ///< Raw ADC code recorded at reference temperature (0 = uncalibrated)
+    float _ref_temp_c_degrees = 25.0f;  ///< Reference temperature in °C during sensor calibration
+    int32_t _ref_temp_raw = 0;          ///< Raw ADC code recorded at reference temperature (0 = uncalibrated)
 
     /**
      * @brief Polls is_ready() with a bounded timeout, yielding at most once per
