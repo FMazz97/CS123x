@@ -139,7 +139,7 @@ void runGaussianTest() {
     int8_t lastPercent = -1;
 
     for (uint16_t i = 1; i <= nSamples; i++) {
-        if (Serial.available() && Serial.read() == 27) {
+        if (Serial.available() && Serial.read() == 27) { // 27 = ESC key
             Serial.println(F("\n\n[ABORT] Test interrupted by user!"));
             return;
         }
@@ -161,7 +161,8 @@ void runGaussianTest() {
         double delta2 = raw - mean;
         M2 += delta * delta2;
 
-        // Update progress only when percentage increases
+        // Update progress only when percentage increases,
+        // displays correctly on the PlatformIO terminal
         int currentPercent = (i * 100) / nSamples;
         if (currentPercent > lastPercent) {
             lastPercent = currentPercent;
