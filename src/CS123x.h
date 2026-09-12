@@ -72,10 +72,7 @@ class CS123x {
     CS123X_DualReading readDualChannel(CS123X_Channel channel2, bool verify = true) {
         return _core.read_dual_channel(channel2, verify);
     }
-
-    int32_t readAverage(uint16_t samples = 10) { return _core.read_average(samples); }
-    float readVoltage(float vRef = 2.5f, uint8_t samples = 1) { return _core.read_voltage(vRef, samples); }
-
+    
     bool tare(uint8_t samples = 10) { return _core.tare(samples); }
     bool calibrateScale(float knownWeight, uint8_t samples = 10) { return _core.calibrate_scale(knownWeight, samples); }
 

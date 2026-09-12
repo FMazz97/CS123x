@@ -7,13 +7,14 @@ description: >
   flexible sampling rates, two-point scale calibration, internal temperature
   monitoring, and short-circuit offset diagnostics.
 
-url: "https://github.com/FMazz97/CS123x"
+# The following fields are not supported in ESP-IDF < 6.x
+#url: "https://github.com/FMazz97/CS123x"
 
-license: "MIT"
+#license: "MIT"
 
-maintainers: ["FMazz97"]
+#maintainers: ["FMazz97"]
 
-repository: "https://github.com/FMazz97/CS123x.git"
+#repository: "https://github.com/FMazz97/CS123x.git"
 
 dependencies:
   idf: ">=5.0"
