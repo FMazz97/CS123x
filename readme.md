@@ -1,6 +1,8 @@
-# CS123x - Arduino Library for Chipsea CS1237 & CS1238 24-bit Differential ADCs
+# CS123x - Dual-Framework Arduino / ESP-IDF Library for Chipsea CS1237 & CS1238 24-bit Differential ADCs
 
-Arduino library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
+Arduino and ESP-IDF library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
+
+Built on a single framework-agnostic C++ core: use the familiar camelCase `CS123x` facade on Arduino, or the snake_case `cs123x` class directly in native ESP-IDF (v5.x–6.x) projects — same logic, same protocol implementation, zero duplication between the two.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/FMazz97/CS123x/main/assets/cs123x_modules.jpg" alt="Chipsea CS1237 and CS1238 Breakout Boards" width="550"><br>
@@ -46,45 +48,55 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 ## Key Features
 
 * **Dual Chip Support:** Native C++ driver for both Chipsea **CS1237** (single differential channel) and **CS1238** (2 differential channels) 24-bit ADCs.
-* **Full ADC Configuration:** Runtime control over PGA Gain (1x to 128x), Output Data Rate (10 Hz to 1280 Hz), Channel Selection, and Reference Source.
+* **Dual Framework:** One framework-agnostic core, usable natively from either the **Arduino** ecosystem or **ESP-IDF** (v5.x–6.x) — see [Compatibility](#compatibility).
+* **Full ADC Configuration:** Runtime control of PGA Gain (1x-128x), Output Data Rate (10-1280 Hz), Channel Selection, and Reference Source. All parameters can be set individually or together via `setConfig()`/`getConfig()` and the `CS123X_Config` struct (supports `==`/`!=` comparison).
 * **Dual-Channel Reads:** `readDualChannel()` interleaves reads across two channels without wasting a conversion cycle per switch. Useful for CS1238 dual-sensor setups, or CS1237 patterns like alternating `CS123X_CH_A`/`CS123X_CH_TEMP` for thermal compensation.
 * **Voltage Readout:** `readVoltage()` converts raw ADC codes to the differential input voltage, accounting for the configured PGA gain and reference voltage.
 * **Dual Execution Modes (Safe Blocking vs. Fast Non-Blocking):**
-  * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts and cooperative `yield()` calls preventing WatchDog Timer resets on ESP8266/ESP32 even across repeated calls (e.g. inside `readAverage()`). Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.
-  * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to register setters. Non-blocking polling can be built using `isReady()` and `forceRead()` directly in your main loop or attach a hardware interrupt on the `DOUT` pin's falling edge (data-ready signal) instead of polling `isReady()`.
-* **Internal Temperature Sensing:** Seamless temperature measurements in °C (`readTemperature()`), with automatic channel switching and gain restoration.
+  * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts. Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.
+  * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to register setters. Non-blocking polling can be built using `isReady()` and `readNow()` directly in your main loop or attach a hardware interrupt on the `DOUT` pin's falling edge (data-ready signal) instead of polling `isReady()`.
+  * **Watchdog-Safe Polling:** Internal wait loops cooperatively yield on ESP8266/ESP32/ESP-IDF (FreeRTOS-aware, tuned to avoid starving the IDLE task) while staying in tight polling during a chip's normal conversion window at 640/1280 Hz. No manual tuning required to keep both throughput and system stability.
+* **Internal Temperature Sensing:** Seamless temperature measurements in °C (`readTemp()`), with automatic channel switching and gain restoration. `calibrateTemp()` reads a live reference point from the chip; `setTempCalibration()`/`getTempCalibration()` manage calibration parameters directly (e.g. for EEPROM persistence).
 * **Internal Short-Circuit Diagnostics:** Switch to the on-chip short-circuit channel (`CS123X_CH_SHORT`) to measure zero-offset drift without physically disconnecting the sensor.
-* **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`getUnits()`).
+* **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`readNetUnits()`), plus raw net counts via `readNetCounts()`.
 
-> For the complete list of methods, parameters, and return values, see the fully Doxygen-documented [`CS123x.h`](https://github.com/FMazz97/CS123x/blob/main/src/CS123x.h) header.
+> For the complete list of methods, parameters, and return values, see the fully Doxygen-documented [`cs123x.h`](https://github.com/FMazz97/CS123x/blob/main/src/core/cs123x.h) (API and configuration logic) and [`cs123x_types.h`](https://github.com/FMazz97/CS123x/blob/main/src/core/cs123x_types.h) (types and constants) headers.
 
 ---
 
 ## Compatibility
 
-This library is built with the **Arduino framework** API (`digitalWrite()`, `digitalRead()`, `pinMode()`, `millis()`, `yield()`) and requires no platform-specific dependencies beyond it. Any board with a working Arduino core should be supported.
+This library is built on a framework-agnostic C++ core: all GPIO, timing, and critical-section access goes through a small HAL layer, resolved at compile time for the active framework. No platform-specific code in the core logic itself.
+
+### Arduino
+
+Built against the standard Arduino framework API (`digitalWrite()`, `digitalRead()`, `pinMode()`, `millis()`, `yield()`) and requires no platform-specific dependencies beyond it. Any board with a working Arduino core should be supported via the `CS123x` facade.
+
+### ESP-IDF
+
+Implemented as a native ESP‑IDF component (v5.x–6.x), leveraging the framework’s HAL and FreeRTOS primitives for GPIO access, timing, and critical‑section handling. The `cs123x` class is the core implementation of the library and no external dependencies beyond ESP‑IDF are required.
 
 ### Tested Microcontrollers:
 
-Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif targets (3.3V logic):
+Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif targets (3.3V logic), using the supported frameworks for each platform.:
 
-* **Arduino AVR**:
+* **Arduino AVR** (Arduino framework):
   * **ATmega328P** on [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) and [Arduino Nano](https://store.arduino.cc/collections/nano-family/products/arduino-nano)
   * **ATmega2560** on [Arduino Mega 2560 Rev3](https://store.arduino.cc/products/arduino-mega-2560-rev3)
 
-* **Espressif ESP**:
+* **Espressif ESP** (Arduino & ESP‑IDF framework):
   * **ESP32-WROOM-32** on [NodeMCU-32S V1.1](https://wiki.geekworm.com/NodeMCU-32S) and [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
   * **ESP32-S3** on [ESP32-S3-DevKitC-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)
   * **ESP32-C3** on [ESP32-C3 SuperMini](https://lastminuteengineers.com/esp32-c3-super-mini-pinout-reference/)
   * **ESP8266** on [NodeMCU V2](https://wiki.geekworm.com/NodeMcu_ESP8266) and [ESP-01S](https://www.instructables.com/How-to-use-the-ESP8266-01-pins)
 
-> **Note:** All microcontrollers above were successfully tested using the [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) example sketch.
+> **Note:** All microcontrollers above were successfully tested using the Arduino [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) and the ESP‑IDF [`test_exhaustive`](https://github.com/FMazz97/CS123x/blob/main/idf_examples/test_exhaustive/main/main.cpp) examples.
 
 ---
 
-## Quick Start
+## Installation
 
-### Installation
+### Arduino
 
 #### Arduino IDE
 
@@ -102,7 +114,7 @@ The library is published on the [PlatformIO Registry](https://registry.platformi
 
 ```ini
 ; Pin to a specific version for reproducible builds (recommended)
-lib_deps = fmazz97/CS123x@^1.0.0
+lib_deps = fmazz97/CS123x@^2.0.0
 ```
 
 > For version pinning, alternative sources (Git, local folder), and other options, see the official guide on [declaring dependencies](https://docs.platformio.org/en/latest/librarymanager/dependencies.html#declaring-dependencies).
