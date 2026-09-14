@@ -7,6 +7,23 @@ repository: "https://github.com/FMazz97/CS123x.git"
 documentation: "https://github.com/FMazz97/CS123x#readme"
 issues: "https://github.com/FMazz97/CS123x/issues"
 
+examples:
+  - path: ./examples/test_exhaustive
+  - path: ./examples/test_gaussian
+
+files:
+  exclude:
+    - "src/CS123x.h"
+    - "keywords.txt"
+    - "library.json"
+    - "library.properties"
+    - "assets/**"
+    - "examples/SimpleScale/**"
+    - "examples/SimpleTemperature/**"
+    - "examples/TestBasic/**"
+    - "examples/TestExhaustive/**"
+    - "examples/TestGaussian/**"
+
 maintainers:
   - "FMazz97"
 
