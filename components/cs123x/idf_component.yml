@@ -1,20 +1,14 @@
 name: "cs123x"
 version: "2.0.0"
+description: "Driver for Chipsea CS1237 and CS1238 24-bit differential ADCs, designed for weigh scales and load cells."
 
-description: >
-  Driver for Chipsea CS1237 and CS1238 24-bit differential ADCs. Designed for
-  load cells, weight scales, and bridge sensors with full PGA gain control,
-  flexible sampling rates, two-point scale calibration, internal temperature
-  monitoring, and short-circuit offset diagnostics.
+url: "https://github.com/FMazz97/CS123x"
+repository: "https://github.com/FMazz97/CS123x.git"
+documentation: "https://github.com/FMazz97/CS123x#readme"
+issues: "https://github.com/FMazz97/CS123x/issues"
 
-# The following fields are not supported in ESP-IDF < 6.x
-#url: "https://github.com/FMazz97/CS123x"
-
-#license: "MIT"
-
-#maintainers: ["FMazz97"]
-
-#repository: "https://github.com/FMazz97/CS123x.git"
+maintainers:
+  - "FMazz97"
 
 dependencies:
   idf: ">=5.0"
