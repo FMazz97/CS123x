@@ -55,7 +55,7 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 * **Dual Execution Modes (Safe Blocking vs. Fast Non-Blocking):**
   * **Blocking with Hardware Verification (DEFAULT):** By default, methods like `read()`, `begin()`, and register setters operate safely in blocking mode with dynamic timeouts. Setters default to `verify = true`, reading back internal hardware registers to guarantee write success.
   * **Fast / Non-Blocking Mode:** For ultra-fast configuration or event-driven loops, register verification can be disabled by passing `verify = false` to register setters. Non-blocking polling can be built using `isReady()` and `readNow()` directly in your main loop or attach a hardware interrupt on the `DOUT` pin's falling edge (data-ready signal) instead of polling `isReady()`.
-  * **Watchdog-Safe Polling:** Internal wait loops cooperatively yield on ESP8266/ESP32/ESP-IDF (FreeRTOS-aware, tuned to avoid starving the IDLE task) while staying in tight polling during a chip's normal conversion window at 640/1280 Hz. No manual tuning required to keep both throughput and system stability.
+* **Watchdog-Safe Polling:** Internal wait loops cooperatively yield on ESP8266/ESP32/ESP-IDF (FreeRTOS-aware, tuned to avoid starving the IDLE task) while staying in tight polling during a chip's normal conversion window at 640/1280 Hz. No manual tuning required to keep both throughput and system stability.
 * **Internal Temperature Sensing:** Seamless temperature measurements in °C (`readTemp()`), with automatic channel switching and gain restoration. `calibrateTemp()` reads a live reference point from the chip; `setTempCalibration()`/`getTempCalibration()` manage calibration parameters directly (e.g. for EEPROM persistence).
 * **Internal Short-Circuit Diagnostics:** Switch to the on-chip short-circuit channel (`CS123X_CH_SHORT`) to measure zero-offset drift without physically disconnecting the sensor.
 * **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`readNetUnits()`), plus raw net counts via `readNetCounts()`.
@@ -70,11 +70,11 @@ This library is built on a framework-agnostic C++ core: all GPIO, timing, and cr
 
 ### Arduino
 
-Built against the standard Arduino framework API (`digitalWrite()`, `digitalRead()`, `pinMode()`, `millis()`, `yield()`) and requires no platform-specific dependencies beyond it. Any board with a working Arduino core should be supported via the `CS123x` facade.
+The HAL bridges the core to the standard Arduino API (`digitalWrite()`, `digitalRead()`, `pinMode()`, `millis()`, `yield()`), making the library compatible out-of-the-box with any board featuring a functional Arduino core via the `CS123x` facade.
 
 ### ESP-IDF
 
-Implemented as a native ESP‑IDF component (v5.x–6.x), leveraging the framework’s HAL and FreeRTOS primitives for GPIO access, timing, and critical‑section handling. The `cs123x` class is the core implementation of the library and no external dependencies beyond ESP‑IDF are required.
+The HAL bridges the core directly to native ESP-IDF (v5.x–6.x), leveraging framework HAL and FreeRTOS primitives for GPIO, timing, and critical sections via the `cs123x` class—with zero external dependencies required.
 
 ### Tested Microcontrollers:
 
@@ -105,6 +105,8 @@ Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif ta
 * **Manual installation:** Download or clone this repository into your Arduino `libraries` folder (`Documents/Arduino/libraries/CS123x`), then restart the IDE.
 
 ### ESP-IDF
+
+[![Component Registry](https://components.espressif.com/components/fmazz97/cs123x/badge.svg)](https://components.espressif.com/components/fmazz97/cs123x)
 
 The library is published on [ESP Component Registry](https://components.espressif.com/components/fmazz97/cs123x) as `cs123x`, without any Arduino dependency.
 
@@ -263,13 +265,14 @@ For standard **350 Ω load cells**, the recommended values are:
 
 ### Basic Weight Measurement & Taring
 
-The `SimpleScale` example demonstrates the typical scale workflow:
+The **`Simple Scale`** example (available for both frameworks) demonstrates the typical scale workflow:
 
-1. **`begin()`**: initializes the ADC and verifies the hardware configuration.
-2. **`tare(samples)`**: zeroes the scale with the platform empty, storing the offset.
-3. **`calibrateScale(knownWeight, samples)`**: derives the scale factor from a known reference weight placed on the weight scale or load cell.
-4. **`getUnits(samples)`**: continuously returns the net weight in physical units (`(raw - offset) / scale`), ready to print or log.
+1. **`Begin()`**: initializes the ADC and verifies the hardware configuration.
+2. **`Tare(samples)`**: zeroes the scale with the platform empty, storing the offset.
+3. **`Calibrate Scale(knownWeight, samples)`**: derives the scale factor from a known reference weight placed on the weight scale or load cell.
+4. **`Read Net Units(samples)`**: continuously returns the net weight in physical units (`(raw - offset) / scale`), ready to print or log.
 
+* **Arduino:**
 ```cpp
 CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
 
@@ -278,13 +281,26 @@ adc.tare(CALIBRATION_SAMPLES);
 adc.calibrateScale(KNOWN_WEIGHT, CALIBRATION_SAMPLES);
 
 // In loop():
-float weight = adc.getUnits(SAMPLES);
+float weight = adc.readNetUnits(SAMPLES);
 ```
-
 See [`SimpleScale.ino`](https://github.com/FMazz97/CS123x/blob/main/examples/SimpleScale/SimpleScale.ino) for the full sketch, including serial diagnostics and error handling.
 
+* **ESP-IDF:**
+```cpp
+static cs123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
+
+// In app_main():
+adc.begin();
+adc.tare(CALIBRATION_SAMPLES);
+adc.calibrate_scale(KNOWN_WEIGHT, CALIBRATION_SAMPLES);
+
+// In the measurement loop:
+float weight = adc.read_net_units(SAMPLES);
+```
+See [`examples/simple_scale`](https://github.com/FMazz97/CS123x/tree/main/examples/simple_scale) for the full project, including logging and error handling.
+
 ### Other examples
-See the [`examples/`](https://github.com/FMazz97/CS123x/tree/main/examples) directory for complete, ready-to-run Arduino sketches.
+See the [`examples/`](https://github.com/FMazz97/CS123x/tree/main/examples) directory for complete, ready-to-run Arduino sketches (`PascalCaseExample/PascalCaseExample.ino`) & ESP-IDF projects (`snake_case_folder_example/`).
 
 ---
 
