@@ -111,37 +111,37 @@ Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif ta
 The library is published on [ESP Component Registry](https://components.espressif.com/components/fmazz97/cs123x) as `cs123x`, without any Arduino dependency.
 
 * **Via `idf.py` (recommended):** In your project directory, run:
-```bash
-  idf.py add-dependency "fmazz97/cs123x^2.0.0"
-```
+  ```bash
+    idf.py add-dependency "fmazz97/cs123x^2.0.0"
+  ```
   This adds `cs123x` as a dependency of the `main` component.
 * **Manual:** add directly to `main/idf_component.yml`:
-```YAML
-dependencies:
-  cs123x: "^2.0.0"
-```
+  ```YAML
+  dependencies:
+    cs123x: "^2.0.0"
+  ```
 
 * **Local development:** To work with a local copy of the library, clone the repository into a folder named `cs123x` in all lowercase:
-```bash
-git clone https://github.com/FMazz97/CS123x.git cs123x
-```
-> ESP‑IDF uses the folder name as the component name. The directory must be named cs123x in lowercase, otherwise the component will not be detected.
+  ```bash
+  git clone https://github.com/FMazz97/CS123x.git cs123x
+  ```
+  > ESP‑IDF uses the folder name as the component name. The directory must be named cs123x in lowercase, otherwise the component will not be detected.
 
-Then, reference to the local component path directly in your project's `main/idf_component.yml` manifest:
-```YAML
-dependencies:
-  cs123x:
-    version: "*"
-    override_path: "../../path/to/cs123x"
-```
-Finally, declare the dependency in `main/CMakeLists.txt`:
-```CMake
-idf_component_register(
-    SRCS "main.cpp"
-    INCLUDE_DIRS "."
-    REQUIRES cs123x
-)
-```
+  Then, reference to the local component path directly in your project's `main/idf_component.yml` manifest:
+  ```YAML
+  dependencies:
+    cs123x:
+      version: "*"
+      override_path: "../../path/to/cs123x"
+  ```
+  Finally, declare the dependency in `main/CMakeLists.txt`:
+  ```CMake
+  idf_component_register(
+      SRCS "main.cpp"
+      INCLUDE_DIRS "."
+      REQUIRES cs123x
+  )
+  ```
 
 ### PlatformIO
 
@@ -150,20 +150,20 @@ idf_component_register(
 The library is published on the [PlatformIO Registry](https://registry.platformio.org/libraries/fmazz97/cs123x) and works with **both** `framework = arduino` and `framework = espidf`.
 
 * **Via PlatformIO Registry (Arduino or ESP‑IDF — recommended):** Add it to your `platformio.ini` via `lib_deps`:
-```ini
-; Pin to a specific version for reproducible builds (recommended)
-lib_deps = fmazz97/cs123x@^2.0.0
-framework = ...
-```
-This works for both frameworks without changes.
+  ```ini
+  ; Pin to a specific version for reproducible builds (recommended)
+  lib_deps = fmazz97/cs123x@^2.0.0
+  framework = ...
+  ```
+  This works for both frameworks without changes.
 
 * **Using native ESP‑IDF inside PlatformIO:** in your `platformio.ini` declare:
-```ini
-framework = espidf
-```
-Then integrate the component using the native ESP‑IDF dependency system, exactly as described in the above [ESP‑IDF](#esp-idf-1) section.
+  ```ini
+  framework = espidf
+  ```
+  Then integrate the component using the native ESP‑IDF dependency system, exactly as described in the above [ESP‑IDF](#esp-idf-1) section.
 
-> For version pinning, alternative sources (Git, local folder), and other options, see the official guide on [declaring dependencies](https://docs.platformio.org/en/latest/librarymanager/dependencies.html#declaring-dependencies).
+  > For version pinning, alternative sources (Git, local folder), and other options, see the official guide on [declaring dependencies](https://docs.platformio.org/en/latest/librarymanager/dependencies.html#declaring-dependencies).
 
 ---
 
@@ -273,31 +273,32 @@ The **`Simple Scale`** example (available for both frameworks) demonstrates the 
 4. **`Read Net Units(samples)`**: continuously returns the net weight in physical units (`(raw - offset) / scale`), ready to print or log.
 
 * **Arduino:**
-```cpp
-CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
+  ```cpp
+  CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
 
-adc.begin();
-adc.tare(CALIBRATION_SAMPLES);
-adc.calibrateScale(KNOWN_WEIGHT, CALIBRATION_SAMPLES);
+  // in setup():
+  adc.begin();
+  adc.tare(CALIBRATION_SAMPLES);
+  adc.calibrateScale(KNOWN_WEIGHT, CALIBRATION_SAMPLES);
 
-// In loop():
-float weight = adc.readNetUnits(SAMPLES);
-```
-See [`SimpleScale.ino`](https://github.com/FMazz97/CS123x/blob/main/examples/SimpleScale/SimpleScale.ino) for the full sketch, including serial diagnostics and error handling.
+  // In loop():
+  float weight = adc.readNetUnits(SAMPLES);
+  ```
+  See [`SimpleScale.ino`](https://github.com/FMazz97/CS123x/blob/main/examples/SimpleScale/SimpleScale.ino) for the full sketch, including serial diagnostics and error handling.
 
 * **ESP-IDF:**
-```cpp
-static cs123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
+  ```cpp
+  static cs123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
 
-// In app_main():
-adc.begin();
-adc.tare(CALIBRATION_SAMPLES);
-adc.calibrate_scale(KNOWN_WEIGHT, CALIBRATION_SAMPLES);
+  // In app_main():
+  adc.begin();
+  adc.tare(CALIBRATION_SAMPLES);
+  adc.calibrate_scale(KNOWN_WEIGHT, CALIBRATION_SAMPLES);
 
-// In the measurement loop:
-float weight = adc.read_net_units(SAMPLES);
-```
-See [`examples/simple_scale`](https://github.com/FMazz97/CS123x/tree/main/examples/simple_scale) for the full project, including logging and error handling.
+  // In the measurement loop:
+  float weight = adc.read_net_units(SAMPLES);
+  ```
+  See [`examples/simple_scale`](https://github.com/FMazz97/CS123x/tree/main/examples/simple_scale) for the full project, including logging and error handling.
 
 ### Other examples
 See the [`examples/`](https://github.com/FMazz97/CS123x/tree/main/examples) directory for complete, ready-to-run Arduino sketches (`PascalCaseExample/PascalCaseExample.ino`) & ESP-IDF projects (`snake_case_folder_example/`).
