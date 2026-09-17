@@ -1,16 +1,15 @@
-# CS123x Simple Scale Example
+# CS123x Simple Temperature Calibration & Reading Example
 
-This example demonstrates how to use the **CS123x** library to build a practical weight scale with zero-point alignment (tare), scale factor calibration using a known reference weight, and power-down sleep cycles.
+This example demonstrates how to use the CS123x library to perform single-point calibration on the chip's internal temperature sensor and continuously acquire physical temperature readings in degrees Celsius (°C).
 
 ---
 
 ## 🚀 Features Demonstrated
 
 1. **ADC Initialization & Hardware Sync**:  Initializes GPIO lines, writes the default or user‑provided configuration to the ADC and verifies correct register read‑back from it.
-2. **Tare Procedure**: Zeroes the scale platform by capturing offset counts across multiple samples.
-3. **Scale Calibration**: Computes the linear scale factor (`Counts` / `Weight`) using a known reference weight.
-4. **Net Measurement**: Converts net raw counts (`Raw` - `Offset`) into physical units (`Net Counts` / `Scale Factor`).
-5. **Power Management**: Demonstrates `power_down()` and `power_up()` sequences between readings.
+2. **Single-Point Live Calibration:** Calibrates the internal temperature sensor using on-the-fly ambient temperature sampling via `calibrate_temp()`.
+3. **Optimized Temperature Acquisition:** The ADC initializes directly on `CS123X_CH_TEMP` and acquires physical temperature readings in °C via `read_temp()` without any channel switching or register overhead.
+4. **Continuous Monitoring:** Main loop sampling physical temperature averaged across multiple readings every second.
 
 ---
 
@@ -62,11 +61,9 @@ idf.py -p <PORT> flash monitor
 
 When the program boots:
 
-1. **Empty Scale:** Leave the load cell completely unweighted during step `[2] TARE PROCEDURE.`
+1. **Setup Calibration:** The ADC initializes directly on `CS123X_CH_TEMP` and performs live temperature calibration against `CURRENT_ROOM_TEMP` (default: 25.0 °C).
 
-2. **Apply Reference Weight:** When prompted at step `[3] SCALE FACTOR CALIBRATION`, place the exact known weight (e.g., `100.0 kg` / `100.0 g`) on the scale.
-
-3. **Continuous Readings:** The log will display net counts and calibrated weight values every 5 seconds.
+2. **Temperature Loop:** The application enters a continuous loop, reading and outputting internal chip temperature in °C every second over the serial console.
 
 ---
 

@@ -27,7 +27,7 @@
 // Known ambient room temperature during calibration (in °C)
 #define CURRENT_ROOM_TEMP 25.0f
 
-CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN);
+CS123x adc(CS123X_TYPE_CS1237, DOUT_PIN, SCLK_PIN, CS123X_CH_TEMP);
 
 void setup() {
     Serial.begin(115200);

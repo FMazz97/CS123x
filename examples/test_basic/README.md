@@ -1,18 +1,13 @@
-# CS123x Exhaustive API & Hardware Test Example
+# CS123x Basic API & Hardware Test Example
 
-This example provides a comprehensive hardware verification and API test suite for the CS123x library. It systematically tests all configuration parameters, gain settings, sample rates, channels, internal reference modes, temperature calibration, dual-channel reading, and power management sequences.
+This example provides a streamlined functional verification test suite for the core features of the CS123x library. It tests hardware initialization, configuration setters with verification, tare operation, scale calibration, temperature sensor calibration, power management, and continuous data acquisition.
 
 ---
 
 ## 🚀 Features Demonstrated
 
-1. **ADC Initialization & Hardware Sync:** Initializes GPIO lines, writes the default or user‑provided configuration to the ADC and verifies correct register read‑back from it.
-2. **Exhaustive Gain Test:** Sweeps through all 4 valid gain settings (`GAIN_1`, `GAIN_2`, `GAIN_64`, `GAIN_128`) and verifies hardware write/readback consistency.
-3. **Exhaustive Data Rate Test:** Cycles through all 4 supported data output rates (`10Hz`, `40Hz`, `640Hz`, `1280Hz`) and validates timeout handling.
-4. **Exhaustive Channel Test:** Verifies switching between all available input channels (`CH_A`, `CH_B` (CS1238 only), `CH_TEMP`, `CH_SHORT`).
-5. **Internal Reference Test:** Toggles internal reference configuration (`REF_ON`, `REF_OFF`) — only for software test, see [`Hardware Architecture & Voltage Reference`](https://github.com/FMazz97/CS123x#hardware-architecture--voltage-reference) for more information.
-6. **Batch Configuration:** Validates bulk updates via `set_config()` and configuration snapshotting via `get_config()`.
-7. **Dual-Channel Interleaved Reading:** Reads from two distinct channels in a single interleaved sequence using `read_dual_channel()` function to avoid a wasted conversion cycle per switch, unlike calling `read()` and `set_ch()` separately.
+1. **ADC Initialization & Hardware Sync:** Initializes GPIO lines, writes the default or user-provided configuration to the ADC and verifies correct register read-back from it.
+2. **Configuration Setters & Getters:** Validates `register configuration` methods (gain, output rate, channel selection, internal reference) with hardware read-back verification.
 8. **Offset, Scale & Calibration Methods:** Tests manual setters/getters, tare operation, and live scale factor calculation.
 9. **Temperature Sensor Calibration & Read:** Demonstrates manual and on-the-fly temperature calibration and physical temperature acquisition.
 10. **Power Management:** Verifies sleep mode cycles via `power_down()` and `power_up()`.
@@ -61,9 +56,9 @@ idf.py -p <PORT> flash monitor
 
 When the program boots:
 
-1. The test suite will automatically run through steps `[1]` to `[10]`, logging `['RESULT']` and/or diagnostic output for each hardware API function.
+1. **Setup Tests:** The test suite will automatically run through steps `[1]` to `[5]`, logging `['RESULT']` and diagnostic output for hardware API function.
 
-2. Once setup tests finish, the program enters a continuous loop at step `[11]`, printing single-sample raw counts, averaged counts, net counts, units, computed voltage and internal temperature every second.
+2. Once setup tests finish, the program enters a continuous loop at step `[6]`, printing single-sample raw counts, averaged counts, net counts, units, computed voltage and internal temperature every second.
 
 ---
 
