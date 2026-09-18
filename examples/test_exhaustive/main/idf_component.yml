@@ -1,4 +1,4 @@
 dependencies:
-  cs123x:
+  fmazz97/cs123x:
     version: "*"
     override_path: "../../../"

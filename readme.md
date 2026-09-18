@@ -118,7 +118,7 @@ The library is published on [ESP Component Registry](https://components.espressi
 * **Manual:** add directly to `main/idf_component.yml`:
   ```YAML
   dependencies:
-    cs123x: "^2.0.0"
+    fmazz97/cs123x: "^2.0.0"
   ```
 
 * **Local development:** To work with a local copy of the library, clone the repository into a folder named `cs123x` in all lowercase:
@@ -130,7 +130,7 @@ The library is published on [ESP Component Registry](https://components.espressi
   Then, reference to the local component path directly in your project's `main/idf_component.yml` manifest:
   ```YAML
   dependencies:
-    cs123x:
+    fmazz97/cs123x:
       version: "*"
       override_path: "../../path/to/cs123x"
   ```

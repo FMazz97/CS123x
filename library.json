@@ -1,6 +1,6 @@
 {
   "name": "cs123x",
-  "version": "2.0.0",
+  "version": "2.0.1",
 "description": "Arduino and ESP-IDF library for Chipsea CS1237 and CS1238 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.",
   "keywords": [
     "cs1237",
