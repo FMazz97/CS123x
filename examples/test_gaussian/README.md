@@ -1,6 +1,6 @@
 # CS123x Gaussian Noise Test Example
 
-This example provides a high-resolution statistical analysis and noise characterization tool for the CS123x library. It uses Welford's algorithm for numerically stable mean and variance computation, reporting RMS noise, peak-to-peak noise, LSB-equivalent voltage noise, effective number of bits (ENOB), and noise-free resolution.
+This example provides a high-resolution statistical analysis and noise characterization tool for the **cs123x** component. It uses Welford's algorithm for numerically stable mean and variance computation, reporting RMS noise, peak-to-peak noise, LSB-equivalent voltage noise, effective number of bits (ENOB), and noise-free resolution.
 
 ---
 

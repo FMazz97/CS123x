@@ -1,6 +1,6 @@
 # CS123x Exhaustive API & Hardware Test Example
 
-This example provides a comprehensive hardware verification and API test suite for the CS123x library. It systematically tests all configuration parameters, gain settings, sample rates, channels, internal reference modes, temperature calibration, dual-channel reading, and power management sequences.
+This example provides a comprehensive hardware verification and API test suite for the **cs123x** component. It systematically tests all configuration parameters, gain settings, sample rates, channels, internal reference modes, temperature calibration, dual-channel reading, and power management sequences.
 
 ---
 

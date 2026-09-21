@@ -1,6 +1,6 @@
-# CS123x Simple Scale Example
+# cs123x Simple Scale Example
 
-This example demonstrates how to use the **CS123x** library to build a practical weight scale with zero-point alignment (tare), scale factor calibration using a known reference weight, and power-down sleep cycles.
+This example demonstrates how to use the **cs123x** component to build a practical weight scale with zero-point alignment (tare), scale factor calibration using a known reference weight, and power-down sleep cycles.
 
 ---
 
