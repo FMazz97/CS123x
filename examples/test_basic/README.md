@@ -1,4 +1,4 @@
-# cs123x Basic API & Hardware Test Example
+# CS123x Basic API & Hardware Test Example
 
 This example provides a streamlined functional verification test suite for the core features of the **cs123x** component. It tests hardware initialization, configuration setters with verification, tare operation, scale calibration, temperature sensor calibration, power management, and continuous data acquisition.
 

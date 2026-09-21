@@ -1,4 +1,4 @@
-# cs123x Simple Temperature Calibration & Reading Example
+# CS123x Simple Temperature Calibration & Reading Example
 
 This example demonstrates how to use the **cs123x** component to perform single-point calibration on the chip's internal temperature sensor and continuously acquire physical temperature readings in degrees Celsius (°C).
 
