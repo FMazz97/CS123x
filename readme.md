@@ -48,7 +48,7 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 ## Key Features
 
 * **Dual Chip Support:** Native C++ driver for both Chipsea **CS1237** (single differential channel) and **CS1238** (2 differential channels) 24-bit ADCs.
-* **Dual Framework:** One framework-agnostic core, usable natively from either the **Arduino** ecosystem or **ESP-IDF** (v5.x–6.x) — see [Compatibility](#compatibility).
+* **Dual Framework:** One framework-agnostic core, usable natively from either the **Arduino** ecosystem or **ESP-IDF** (v5.x–6.x).
 * **Full ADC Configuration:** Runtime control of PGA Gain (1x-128x), Output Data Rate (10-1280 Hz), Channel Selection, and Reference Source. All parameters can be set individually or together via `setConfig()`/`getConfig()` and the `CS123X_Config` struct (supports `==`/`!=` comparison).
 * **Dual-Channel Reads:** `readDualChannel()` interleaves reads across two channels without wasting a conversion cycle per switch. Useful for CS1238 dual-sensor setups, or CS1237 patterns like alternating `CS123X_CH_A`/`CS123X_CH_TEMP` for thermal compensation.
 * **Voltage Readout:** `readVoltage()` converts raw ADC codes to the differential input voltage, accounting for the configured PGA gain and reference voltage.
@@ -84,13 +84,16 @@ Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif ta
   * **ATmega328P** on [Arduino Uno Rev3](https://store.arduino.cc/products/arduino-uno-rev3) and [Arduino Nano](https://store.arduino.cc/collections/nano-family/products/arduino-nano)
   * **ATmega2560** on [Arduino Mega 2560 Rev3](https://store.arduino.cc/products/arduino-mega-2560-rev3)
 
-* **Espressif ESP** (Arduino & ESP‑IDF framework):
-  * **ESP32-WROOM-32** on [NodeMCU-32S V1.1](https://wiki.geekworm.com/NodeMCU-32S) and [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
-  * **ESP32-S3** on [ESP32-S3-DevKitC-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)
-  * **ESP32-C3** on [ESP32-C3 SuperMini](https://lastminuteengineers.com/esp32-c3-super-mini-pinout-reference/)
-  * **ESP8266** on [NodeMCU V2](https://wiki.geekworm.com/NodeMcu_ESP8266) and [ESP-01S](https://www.instructables.com/How-to-use-the-ESP8266-01-pins)
+* **Espressif ESP:**
+  * **ESP32** (Arduino & ESP‑IDF framework): 
+    * **ESP32-WROOM-32** on [NodeMCU-32S V1.1](https://wiki.geekworm.com/NodeMCU-32S) and [Cheap Yellow Display (ESP32-2432S028)](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display)
+    * **ESP32-S3** on [ESP32-S3-DevKitC-1](https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html)
+    * **ESP32-C3** on [ESP32-C3 SuperMini](https://lastminuteengineers.com/esp32-c3-super-mini-pinout-reference/)
 
-> **Note:** All microcontrollers above were successfully tested using the Arduino [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) and the ESP‑IDF [`test_exhaustive`](https://github.com/FMazz97/CS123x/blob/main/idf_examples/test_exhaustive/main/main.cpp) examples.
+  * **ESP8266** (Arduino framework):
+    * **ESP8266** on [NodeMCU V2](https://wiki.geekworm.com/NodeMcu_ESP8266) and [ESP-01S](https://www.instructables.com/How-to-use-the-ESP8266-01-pins)
+
+> **Note:** All microcontrollers above were successfully tested using the Arduino [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/Arduino/TestExhaustive/TestExhaustive.ino) and the ESP‑IDF [`test_exhaustive`](https://github.com/FMazz97/CS123x/blob/main/idf_examples/test_exhaustive/main/main.cpp) examples.
 
 ---
 
@@ -115,6 +118,7 @@ The library is published on [ESP Component Registry](https://components.espressi
     idf.py add-dependency "fmazz97/cs123x^2.0.0"
   ```
   This adds `cs123x` as a dependency of the `main` component.
+
 * **Manual:** add directly to `main/idf_component.yml`:
   ```YAML
   dependencies:
@@ -133,14 +137,6 @@ The library is published on [ESP Component Registry](https://components.espressi
     fmazz97/cs123x:
       version: "*"
       override_path: "../../path/to/cs123x"
-  ```
-  Finally, declare the dependency in `main/CMakeLists.txt`:
-  ```CMake
-  idf_component_register(
-      SRCS "main.cpp"
-      INCLUDE_DIRS "."
-      REQUIRES cs123x
-  )
   ```
 
 ### PlatformIO
@@ -284,7 +280,7 @@ The **`Simple Scale`** example (available for both frameworks) demonstrates the 
   // In loop():
   float weight = adc.readNetUnits(SAMPLES);
   ```
-  See [`SimpleScale.ino`](https://github.com/FMazz97/CS123x/blob/main/examples/SimpleScale/SimpleScale.ino) for the full sketch, including serial diagnostics and error handling.
+  See [`SimpleScale.ino`](https://github.com/FMazz97/CS123x/blob/main/examples/Arduino/SimpleScale/SimpleScale.ino) for the full sketch, including serial diagnostics and error handling.
 
 * **ESP-IDF:**
   ```cpp
@@ -301,7 +297,7 @@ The **`Simple Scale`** example (available for both frameworks) demonstrates the 
   See [`examples/simple_scale`](https://github.com/FMazz97/CS123x/tree/main/examples/simple_scale) for the full project, including logging and error handling.
 
 ### Other examples
-See the [`examples/`](https://github.com/FMazz97/CS123x/tree/main/examples) directory for complete, ready-to-run Arduino sketches (`PascalCaseExample/PascalCaseExample.ino`) & ESP-IDF projects (`snake_case_folder_example/`).
+See the [`examples/`](https://github.com/FMazz97/CS123x/tree/main/examples) directory for complete, ready-to-run Arduino sketches (`Arduino/PascalCaseExample/PascalCaseExample.ino`) & ESP-IDF projects (`snake_case_folder_example/`).
 
 ---
 
