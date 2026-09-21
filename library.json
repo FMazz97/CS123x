@@ -31,5 +31,11 @@
     "arduino",
     "espidf"
   ],
-  "platforms": "*"
+  "platforms": "*",
+  "export": {
+    "exclude": [
+      "assets",
+      "keywords.txt"
+    ]
+  }
 }

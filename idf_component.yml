@@ -16,15 +16,12 @@ examples:
 files:
   exclude:
     - "src/CS123x.h"
+    - "src/hal/cs123x_hal_arduino.h"
     - "keywords.txt"
     - "library.json"
     - "library.properties"
     - "assets/**"
-    - "examples/SimpleScale/**"
-    - "examples/SimpleTemperature/**"
-    - "examples/TestBasic/**"
-    - "examples/TestExhaustive/**"
-    - "examples/TestGaussian/**"
+    - "examples/Arduino/**"
 
 maintainers:
   - "FMazz97"
