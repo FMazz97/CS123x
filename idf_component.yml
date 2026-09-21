@@ -7,6 +7,9 @@ documentation: "https://github.com/FMazz97/CS123x#readme"
 issues: "https://github.com/FMazz97/CS123x/issues"
 
 examples:
+  - path: ./examples/simple_scale
+  - path: ./examples/simple_temperature
+  - path: ./examples/test_basic
   - path: ./examples/test_exhaustive
   - path: ./examples/test_gaussian
 
