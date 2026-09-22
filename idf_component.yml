@@ -1,5 +1,5 @@
 name: "cs123x"
-version: "2.0.2"
+version: "2.0.3"
 description: "Driver for Chipsea CS1237 and CS1238 24-bit differential ADCs (weigh scales, load cells, bridge sensor). Features full PGA control, flexible sampling, scale calibration, temperature sensing, and offset diagnostics."
 url: "https://github.com/FMazz97/CS123x"
 repository: "https://github.com/FMazz97/CS123x.git"
@@ -21,7 +21,11 @@ files:
     - "library.json"
     - "library.properties"
     - "assets/**"
-    - "examples/Arduino/**"
+    - "examples/SimpleScale/**"
+    - "examples/SimpleTemperature/**"
+    - "examples/TestBasic/**"
+    - "examples/TestExhaustive/**"
+    - "examples/TestGaussian/**"
 
 maintainers:
   - "FMazz97"

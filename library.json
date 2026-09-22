@@ -1,7 +1,7 @@
 {
   "name": "cs123x",
-  "version": "2.0.2",
-"description": "Arduino and ESP-IDF library for Chipsea CS1237 and CS1238 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.",
+  "version": "2.0.3",
+  "description": "Arduino and ESP-IDF library for Chipsea CS1237 and CS1238 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.",
   "keywords": [
     "cs1237",
     "cs1238",
@@ -33,12 +33,106 @@
   ],
   "platforms": "*",
   "examples": [
-    "examples/arduino/*",
-    "examples/simple_scale",
-    "examples/simple_temperature",
-    "examples/test_basic",
-    "examples/test_exhaustive",
-    "examples/test_gaussian"
+    {
+      "name": "SimpleScale - Arduino",
+      "base": "examples/SimpleScale",
+      "files": [
+        "SimpleScale.ino",
+        "platformio.ini"
+      ]
+    },
+    {
+      "name": "SimpleTemperature - Arduino",
+      "base": "examples/SimpleTemperature",
+      "files": [
+        "SimpleTemperature.ino",
+        "platformio.ini"
+      ]
+    },
+    {
+      "name": "TestBasic - Arduino",
+      "base": "examples/TestBasic",
+      "files": [
+        "TestBasic.ino",
+        "platformio.ini"
+      ]
+    },
+    {
+      "name": "TestExhaustive - Arduino",
+      "base": "examples/TestExhaustive",
+      "files": [
+        "TestExhaustive.ino",
+        "platformio.ini"
+      ]
+    },
+    {
+      "name": "TestGaussian - Arduino",
+      "base": "examples/TestGaussian",
+      "files": [
+        "TestGaussian.ino",
+        "platformio.ini"
+      ]
+    },
+    {
+      "name": "simple_scale - ESP-IDF",
+      "base": "examples/simple_scale",
+      "files": [
+        "main/main.cpp",
+        "main/CMakeLists.txt",
+        "main/idf_component.yml",
+        "CMakeLists.txt",
+        "platformio.ini",
+        "README.md"
+      ]
+    },
+    {
+      "name": "simple_temperature - ESP-IDF",
+      "base": "examples/simple_temperature",
+      "files": [
+        "main/main.cpp",
+        "main/CMakeLists.txt",
+        "main/idf_component.yml",
+        "CMakeLists.txt",
+        "platformio.ini",
+        "README.md"
+      ]
+    },
+    {
+      "name": "test_basic - ESP-IDF",
+      "base": "examples/test_basic",
+      "files": [
+        "main/main.cpp",
+        "main/CMakeLists.txt",
+        "main/idf_component.yml",
+        "CMakeLists.txt",
+        "platformio.ini",
+        "README.md"
+      ]
+    },
+    {
+      "name": "test_exhaustive - ESP-IDF",
+      "base": "examples/test_exhaustive",
+      "files": [
+        "main/main.cpp",
+        "main/CMakeLists.txt",
+        "main/idf_component.yml",
+        "CMakeLists.txt",
+        "platformio.ini",
+        "README.md"
+      ]
+    },
+    {
+      "name": "test_gaussian - ESP-IDF",
+      "base": "examples/test_gaussian",
+      "files": [
+        "main/main.cpp",
+        "main/CMakeLists.txt",
+        "main/idf_component.yml",
+        "CMakeLists.txt",
+        "platformio.ini",
+        "README.md"
+      ]
+    }
   ],
   "export": {
     "exclude": [
