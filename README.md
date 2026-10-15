@@ -2,7 +2,7 @@
 
 Arduino and ESP-IDF library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
 
-Built on a single framework-agnostic C++ core: use the familiar camelCase `CS123x` facade on Arduino, or the snake_case `cs123x` class directly in native ESP-IDF (v5.x–6.x) projects — same logic, same protocol implementation, zero duplication between the two.
+Built on a single framework-agnostic C++ core: use the familiar camelCase `CS123x` facade on Arduino, or the snake_case `cs123x` class directly in native ESP-IDF (v5.x–6.x) projects — same logic, same protocol implementation, zero duplication between the two. See: [Arduino - ESP-IDF Dual Library Guide](https://github.com/FMazz97/arduino-espidf-dual-library-guide) to know how to implement a dual freamework library.
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
@@ -95,7 +95,7 @@ Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif ta
   - **ESP8266** (Arduino framework):
     - **ESP8266** on [NodeMCU V2](https://wiki.geekworm.com/NodeMcu_ESP8266) and [ESP-01S](https://www.instructables.com/How-to-use-the-ESP8266-01-pins)
 
-> **Note:** All microcontrollers above were successfully tested using the Arduino [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) and the ESP‑IDF [`test_exhaustive`](https://github.com/FMazz97/CS123x/blob/main/idf_examples/test_exhaustive/main/main.cpp) examples.
+> **Note:** All microcontrollers above were successfully tested using the Arduino [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) and the ESP‑IDF [`test_exhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/test_exhaustive/main/main.cpp) examples.
 
 ---
 
@@ -137,6 +137,7 @@ The library is published on [ESP Component Registry](https://components.espressi
   ```
 
   > ESP‑IDF uses the folder name as the component name. The directory must be named cs123x in lowercase, otherwise the component will not be detected.
+  > For more details, see: [Local folder name vs. GitHub repository name](https://github.com/FMazz97/arduino-espidf-dual-library-guide/blob/main/chapters/02-repo-structure.md#22-local-folder-name-vs-github-repository-name-independent-and-only-the-local-one-matters).
 
   Then, reference to the local component path directly in your project's `main/idf_component.yml` manifest:
 
@@ -172,6 +173,7 @@ The library is published on the [PlatformIO Registry](https://registry.platformi
   Then integrate the component using the native ESP‑IDF dependency system, exactly as described in the above [ESP Component Registry](#esp-component-registry) section.
 
   > For version pinning, alternative sources (Git, local folder), and other options, see the official guide on [declaring dependencies](https://docs.platformio.org/en/latest/librarymanager/dependencies.html#declaring-dependencies).
+  > For a comprehensive deep dive into how [PlatformIO, Component Manager, and CMake handlre dependency resolution](https://github.com/FMazz97/arduino-espidf-dual-library-guide/blob/main/chapters/04-examples.md#43-platformio-component-manager-and-cmake-are-independent-dependency-resolution-systems), consult the [Arduino - ESP-IDF Dual Library Guide](https://github.com/FMazz97/arduino-espidf-dual-library-guide).
 
 ---
 

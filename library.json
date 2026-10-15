@@ -1,6 +1,6 @@
 {
   "name": "cs123x",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Arduino and ESP-IDF library for Chipsea CS1237 and CS1238 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.",
   "keywords": [
     "cs1237",
@@ -14,6 +14,11 @@
     "weighing",
     "sensor"
   ],
+  "homepage": "https://github.com/FMazz97/CS123x",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FMazz97/CS123x.git"
+  },
   "authors": [
     {
       "name": "FMazz97",
@@ -22,11 +27,6 @@
     }
   ],
   "license": "MIT",
-  "homepage": "https://github.com/FMazz97/CS123x",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/FMazz97/CS123x.git"
-  },
   "frameworks": [
     "arduino",
     "espidf"
@@ -79,7 +79,6 @@
       "files": [
         "main/main.cpp",
         "main/CMakeLists.txt",
-        "main/idf_component.yml",
         "CMakeLists.txt",
         "platformio.ini",
         "README.md"
@@ -91,7 +90,6 @@
       "files": [
         "main/main.cpp",
         "main/CMakeLists.txt",
-        "main/idf_component.yml",
         "CMakeLists.txt",
         "platformio.ini",
         "README.md"
@@ -103,7 +101,6 @@
       "files": [
         "main/main.cpp",
         "main/CMakeLists.txt",
-        "main/idf_component.yml",
         "CMakeLists.txt",
         "platformio.ini",
         "README.md"
@@ -115,7 +112,6 @@
       "files": [
         "main/main.cpp",
         "main/CMakeLists.txt",
-        "main/idf_component.yml",
         "CMakeLists.txt",
         "platformio.ini",
         "README.md"
@@ -127,7 +123,6 @@
       "files": [
         "main/main.cpp",
         "main/CMakeLists.txt",
-        "main/idf_component.yml",
         "CMakeLists.txt",
         "platformio.ini",
         "README.md"
@@ -137,7 +132,9 @@
   "export": {
     "exclude": [
       "assets",
-      "keywords.txt"
+      "keywords.txt",
+      "idf_component.yml",
+      "examples/*/main/idf_component.yml"
     ]
   }
 }

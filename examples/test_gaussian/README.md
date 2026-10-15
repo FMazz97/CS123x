@@ -16,8 +16,8 @@ This example provides a high-resolution statistical analysis and noise character
 
 ## 🛠️ Hardware Requirements
 
-* Any **ESP32** development board.
-* **CS1237** or **CS1238** ADC module connected to a scale / load cell / bridge sensor.
+- Any **ESP32** development board.
+- **CS1237** or **CS1238** ADC module connected to a scale / load cell / bridge sensor.
 
 ---
 
@@ -27,15 +27,20 @@ This example provides a high-resolution statistical analysis and noise character
 
 Stock CS1237/CS1238 modules are current-limited by resistor **R1 (1 kΩ)**. For low-impedance sensors (such as **350 Ω load cells**), reduce R1 by adding an external resistor between **DVDD** and **AVDD**.
 
-For full hardware details, visit the [`Current Limit for Low-Impedance Sensors`](https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors) section on [`CS123x Repository`](https://github.com/FMazz97/CS123x).
+For full hardware details, visit the [Current Limit for Low-Impedance Sensors](https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors) section on [CS123x Repository](https://github.com/FMazz97/CS123x).
 
 ---
 
 ## ⚙️ Building & Flashing
 
-This example already includes both an ESP-IDF-native `CMakeLists.txt`/`main/idf_component.yml` and a ready-to-use `platformio.ini` — no manual setup needed for either toolchain. Pick whichever you already have installed.
+Examples downloaded directly from the registries include only the files required for the selected ecosystem:
 
-> **Note:** If you switch between ESP-IDF (`idf.py`) and PlatformIO on the same folder, run `idf.py fullclean` (or delete the `build/` directory) first — the two toolchains don't share build caches and will conflict otherwise.
+- **ESP Component Registry** packages contain all necessary project files and the `idf_component.yml` manifest required for native ESP-IDF dependency resolution.
+- **PlatformIO Registry** packages contain all necessary project files and the `platformio.ini` entry point required for PlatformIO initialization and dependency resolution (`lib_deps`).
+
+In both cases, the example is ready to build without additional setup.
+
+> **Note:** If you switch between ESP-IDF (`idf.py`) and PlatformIO on the same local checkout, run `idf.py fullclean` (or delete the `build/` directory) first. The two toolchains do not share build caches and may conflict otherwise.
 
 ### Option A: ESP-IDF (native, `idf.py`)
 
@@ -58,12 +63,12 @@ When the program boots:
 1. **Interactive Menu:** After initialization, an interactive menu is printed to the serial console on boot.
 
 2. **CLI Controls:**
-   * `[r]` -> Run **Gaussian Noise Test** across the configured sample size.
-   * `[n]` -> Change number of **samples** (default: 1000).
-   * `[c]` -> Cycle active input **channel** (`CH_A` -> `CH_B` -> `CH_TEMP` -> `CH_SHORT`).
-   * `[g]` -> Cycle **gain** setting (`1x` -> `2x` -> `64x` -> `128x`).
-   * `[f]` -> Cycle **sampling rate** setting (`10Hz` -> `40Hz` -> `640Hz` -> `1280Hz`).
-   * `[h]` -> Reprint **help** menu and current configuration status.
+   - `[r]` -> Run **Gaussian Noise Test** across the configured sample size.
+   - `[n]` -> Change number of **samples** (default: 1000).
+   - `[c]` -> Cycle active input **channel** (`CH_A` -> `CH_B` -> `CH_TEMP` -> `CH_SHORT`).
+   - `[g]` -> Cycle **gain** setting (`1x` -> `2x` -> `64x` -> `128x`).
+   - `[f]` -> Cycle **sampling rate** setting (`10Hz` -> `40Hz` -> `640Hz` -> `1280Hz`).
+   - `[h]` -> Reprint **help** menu and current configuration status.
 
 3. **Results & Evaluation:** The statistical summary outputs mean (offset), RMS noise, peak-to-peak noise, ENOB, and noise-free resolution bits directly in the serial log.
 
@@ -71,4 +76,4 @@ When the program boots:
 
 ## 📄 License
 
-Distributed under the MIT License. See [LICENSE](https://github.com/FMazz97/CS123x/blob/main/LICENSE) for more information.
+This example is distributed under the same MIT License as the [CS123x](https://github.com/FMazz97/CS123x) library. See [LICENSE](https://github.com/FMazz97/CS123x/blob/main/LICENSE) for more for details.

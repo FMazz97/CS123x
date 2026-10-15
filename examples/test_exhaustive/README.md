@@ -22,8 +22,8 @@ This example provides a comprehensive hardware verification and API test suite f
 
 ## 🛠️ Hardware Requirements
 
-* Any **ESP32** development board.
-* **CS1237** or **CS1238** ADC module connected to a scale / load cell / bridge sensor.
+- Any **ESP32** development board.
+- **CS1237** or **CS1238** ADC module connected to a scale / load cell / bridge sensor.
 
 ---
 
@@ -33,15 +33,20 @@ This example provides a comprehensive hardware verification and API test suite f
 
 Stock CS1237/CS1238 modules are current-limited by resistor **R1 (1 kΩ)**. For low-impedance sensors (such as **350 Ω load cells**), reduce R1 by adding an external resistor between **DVDD** and **AVDD**.
 
-For full hardware details, visit the [`Current Limit for Low-Impedance Sensors`](https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors) section on [`CS123x Repository`](https://github.com/FMazz97/CS123x).
+For full hardware details, visit the [Current Limit for Low-Impedance Sensors](https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors) section on [CS123x Repository](https://github.com/FMazz97/CS123x).
 
 ---
 
 ## ⚙️ Building & Flashing
 
-This example already includes both an ESP-IDF-native `CMakeLists.txt`/`main/idf_component.yml` and a ready-to-use `platformio.ini` — no manual setup needed for either toolchain. Pick whichever you already have installed.
+Examples downloaded directly from the registries include only the files required for the selected ecosystem:
 
-> **Note:** If you switch between ESP-IDF (`idf.py`) and PlatformIO on the same folder, run `idf.py fullclean` (or delete the `build/` directory) first — the two toolchains don't share build caches and will conflict otherwise.
+- **ESP Component Registry** packages contain all necessary project files and the `idf_component.yml` manifest required for native ESP-IDF dependency resolution.
+- **PlatformIO Registry** packages contain all necessary project files and the `platformio.ini` entry point required for PlatformIO initialization and dependency resolution (`lib_deps`).
+
+In both cases, the example is ready to build without additional setup.
+
+> **Note:** If you switch between ESP-IDF (`idf.py`) and PlatformIO on the same local checkout, run `idf.py fullclean` (or delete the `build/` directory) first. The two toolchains do not share build caches and may conflict otherwise.
 
 ### Option A: ESP-IDF (native, `idf.py`)
 
@@ -69,4 +74,4 @@ When the program boots:
 
 ## 📄 License
 
-Distributed under the MIT License. See [LICENSE](https://github.com/FMazz97/CS123x/blob/main/LICENSE) for more information.
+This example is distributed under the same MIT License as the [CS123x](https://github.com/FMazz97/CS123x) library. See [LICENSE](https://github.com/FMazz97/CS123x/blob/main/LICENSE) for more for details.
