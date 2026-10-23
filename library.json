@@ -34,7 +34,7 @@
   "platforms": "*",
   "examples": [
     {
-      "name": "SimpleScale - Arduino",
+      "name": "Arduino_SimpleScale",
       "base": "examples/SimpleScale",
       "files": [
         "SimpleScale.ino",
@@ -42,7 +42,7 @@
       ]
     },
     {
-      "name": "SimpleTemperature - Arduino",
+      "name": "Arduino_SimpleTemperature",
       "base": "examples/SimpleTemperature",
       "files": [
         "SimpleTemperature.ino",
@@ -50,7 +50,7 @@
       ]
     },
     {
-      "name": "TestBasic - Arduino",
+      "name": "Arduino_TestBasic",
       "base": "examples/TestBasic",
       "files": [
         "TestBasic.ino",
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "name": "TestExhaustive - Arduino",
+      "name": "Arduino_TestExhaustive",
       "base": "examples/TestExhaustive",
       "files": [
         "TestExhaustive.ino",
@@ -66,7 +66,7 @@
       ]
     },
     {
-      "name": "TestGaussian - Arduino",
+      "name": "Arduino_TestGaussian",
       "base": "examples/TestGaussian",
       "files": [
         "TestGaussian.ino",
@@ -74,7 +74,7 @@
       ]
     },
     {
-      "name": "simple_scale - ESP-IDF",
+      "name": "ESP-IDF_simple_scale",
       "base": "examples/simple_scale",
       "files": [
         "main/main.cpp",
@@ -85,7 +85,7 @@
       ]
     },
     {
-      "name": "simple_temperature - ESP-IDF",
+      "name": "ESP-IDF_simple_temperature",
       "base": "examples/simple_temperature",
       "files": [
         "main/main.cpp",
@@ -96,7 +96,7 @@
       ]
     },
     {
-      "name": "test_basic - ESP-IDF",
+      "name": "ESP-IDF_test_basic",
       "base": "examples/test_basic",
       "files": [
         "main/main.cpp",
@@ -107,7 +107,7 @@
       ]
     },
     {
-      "name": "test_exhaustive - ESP-IDF",
+      "name": "ESP-IDF_test_exhaustive",
       "base": "examples/test_exhaustive",
       "files": [
         "main/main.cpp",
@@ -118,7 +118,7 @@
       ]
     },
     {
-      "name": "test_gaussian - ESP-IDF",
+      "name": "ESP-IDF_test_gaussian",
       "base": "examples/test_gaussian",
       "files": [
         "main/main.cpp",

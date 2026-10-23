@@ -45,15 +45,19 @@ In both cases, the example is ready to build without additional setup.
 
 ### Option A: ESP-IDF (native, `idf.py`)
 
-```bash
-idf.py build
-idf.py -p <PORT> flash monitor
-```
+- Download the example project from the ESP Registry by:
+
+  ```bash
+  idf.py create-project-from-example "fmazz97/cs123x:test_basic"
+  ```
+
+- Then **Build Project**, **Flash Device** and finally **Monitor Device**.
 
 ### Option B: ESP-IDF on PlatformIO
 
-1. Open this folder in VS Code with the PlatformIO extension installed.
-2. Click **Build**, then **Upload**, then **Monitor**.
+- Download the example project from the PlatformIO Registry or directly [by clicking here](https://dl.registry.platformio.org/download/fmazz97/library/cs123x/2.0.4/example/ESP-IDF_test_basic.zip).
+
+- Then **Build**, **Upload** and finally **Serial Monitor**.
 
 ---
 
