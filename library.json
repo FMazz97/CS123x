@@ -136,5 +136,10 @@
       "idf_component.yml",
       "examples/*/main/idf_component.yml"
     ]
+  },
+  "build": {
+    "flags": [
+      "-I src/core"
+    ]
   }
 }
