@@ -41,7 +41,8 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 | **Offset Calibration Mode** | External zeroing | **Internal Short-Circuit Mode** |
 | **Target Application** | Static weighing & low-cost scales | Dynamic checkweighing, fast process control, thermal compensation |
 
-> **Note on Architecture & Application Scope:**
+> [!NOTE]
+> **Architecture & Application Scope:**
 > Like most high-resolution scale ICs, the CS123x uses a **Sigma-Delta (Σ-Δ)** architecture with a digital filter (Sinc3). This makes it ideal for strain gauge load cells in dynamic weighing, material testing, and industrial process automation.
 > For sub-millisecond impact or ballistic testing, dedicated **SAR ADCs** paired with **piezoelectric load cells** are typically required, even if it though at a significantly higher system cost and complexity. The CS123x delivers high-speed capability for low-cost strain gauge sensors at an accessible price point.
 
@@ -62,6 +63,7 @@ Both chips are 24-bit Sigma-Delta (Σ-Δ) ADCs designed for strain gauge sensors
 - **Internal Short-Circuit Diagnostics:** Switch to the on-chip short-circuit channel (`CS123X_CH_SHORT`) to measure zero-offset drift without physically disconnecting the sensor.
 - **Weighing Engine:** Integrated tare zeroing (`tare()`), two-point factor calibration (`calibrateScale()`), and physical unit scaling (`readNetUnits()`), plus raw net counts via `readNetCounts()`.
 
+> [!TIP]
 > For the complete list of methods, parameters, and return values, see the fully Doxygen-documented [`cs123x.h`](https://github.com/FMazz97/CS123x/blob/main/src/core/cs123x.h) (API and configuration logic) and [`cs123x_types.h`](https://github.com/FMazz97/CS123x/blob/main/src/core/cs123x_types.h) (types and constants) headers.
 
 ---
@@ -95,7 +97,8 @@ Verified across both classic 8-bit AVR boards (5V logic) and 32-bit Espressif ta
   - **ESP8266** (Arduino framework):
     - **ESP8266** on [NodeMCU V2](https://wiki.geekworm.com/NodeMcu_ESP8266) and [ESP-01S](https://www.instructables.com/How-to-use-the-ESP8266-01-pins)
 
-> **Note:** All microcontrollers above were successfully tested using the Arduino [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) and the ESP‑IDF [`test_exhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/test_exhaustive/main/main.cpp) examples.
+> [!NOTE]
+> All microcontrollers above were successfully tested using the Arduino [`TestExhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/TestExhaustive/TestExhaustive.ino) and the ESP‑IDF [`test_exhaustive`](https://github.com/FMazz97/CS123x/blob/main/examples/test_exhaustive/main/main.cpp) examples.
 
 ---
 
@@ -137,7 +140,7 @@ The library is published on [ESP Component Registry](https://components.espressi
   ```
 
   > ESP‑IDF uses the folder name as the component name. The directory must be named cs123x in lowercase, otherwise the component will not be detected.
-  > For more details, see: [Local folder name vs. GitHub repository name](https://github.com/FMazz97/arduino-espidf-dual-library-guide/blob/main/chapters/02-repo-structure.md#22-local-folder-name-vs-github-repository-name-independent-and-only-the-local-one-matters).
+  > For more details, see: [Local folder name vs. GitHub repository name](https://github.com/FMazz97/arduino-espidf-dual-library-guide/blob/main/chapters/02-repo-structure.md#22-local-folder-name-vs-github-repository-name) and [IDF Dependency Resolution](https://github.com/FMazz97/arduino-espidf-dual-library-guide/blob/main/appendix/A-esp-idf-dependency-resolution.md).
 
   Then, reference to the local component path directly in your project's `main/idf_component.yml` manifest:
 
@@ -272,7 +275,8 @@ For standard **350 Ω load cells**, the recommended values are:
 | **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA / ~27.4mA | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
 | **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA | **5V Rail Only:** Lower quiescent power for 5V supply rails. |
 
-> **Note:** A lower R1 increases the TL431's steady-state current, and with it, its intrinsic noise even without a sensor connected. A bulk capacitor (10µF or larger) between `AVDD/E+` <=> `AGND/E-` is good practice in general, and becomes important once R1 is reduced: in testing, it cut the measured noise floor by roughly 5-6x.
+> [!WARNING]
+> A lower R1 increases the TL431's steady-state current, and with it, its intrinsic noise even without a sensor connected. A bulk capacitor (10µF or larger) between `AVDD/E+` <=> `AGND/E-` is good practice in general, and becomes important once R1 is reduced: in testing, it cut the measured noise floor by roughly 5-6x.
 >
 > Use the formulas above with the sensor's resistance and supply voltage (for CS1238 the combined draw of both channels) to work out whether, and how much, R1 needs to be adjusted. Keeping an eye on the current/power the TL431 would need to dissipate if the sensor were ever disconnected.
 
