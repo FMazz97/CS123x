@@ -39,8 +39,6 @@ extern portMUX_TYPE cs123x_idf_mux;
 #define CS123X_DOUT_LOW() gpio_set_level(static_cast<gpio_num_t>(_dout), 0)
 #define CS123X_DOUT_READ() gpio_get_level(static_cast<gpio_num_t>(_dout))
 
-#define CS123X_INIT_FAST_IO() ((void)0)
-
 // -----------------------------------------------------------------------------
 // Pin direction. gpio_config() call cost matches what pinMode() already does
 // under the hood on Arduino-ESP32 (same underlying IDF driver) — no new timing
