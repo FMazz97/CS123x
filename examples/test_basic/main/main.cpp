@@ -6,7 +6,7 @@
 ///          For low-impedance sensors (e.g., 350 Ω load cells), reduce R1 by adding a resistor
 ///          between DVDD and AVDD. For full details, see the README section
 ///          "Current Limit for Low-Impedance Sensors":
-///          https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors
+///          https://github.com/FMazz97/CS123x/blob/main/docs/hardware.md#current-limit-for-low-impedance-sensors
 /// @author FMazz97 (https://github.com/FMazz97)
 /// @see CS123x GitHub Repository: https://github.com/FMazz97/CS123x
 /// @copyright MIT License

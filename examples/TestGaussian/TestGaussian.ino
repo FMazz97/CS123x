@@ -9,7 +9,7 @@
 ///          For low-impedance sensors (e.g., 350 Ω load cells), reduce R1 by adding a resistor
 ///          between DVDD and AVDD. For full details, see the README section
 ///          "Current Limit for Low-Impedance Sensors":
-///          https://github.com/FMazz97/CS123x#%EF%B8%8F-important-current-limit-for-low-impedance-sensors
+///          https://github.com/FMazz97/CS123x/blob/main/docs/hardware.md#current-limit-for-low-impedance-sensors
 /// @note Effective Precision Reference:
 ///          - CS1237: 20.0b @5V / 19.5b @3.3V
 ///          - CS1238: 20.7b @5V / 20.2b @3.3V
@@ -92,7 +92,7 @@ uint16_t getRateHz(CS123X_Rate r) {
 void printHelp() {
     CS123X_Config cfg = adc.getConfig();
     Serial.println(F("\n===================================="));
-    Serial.println(F("  CS123x Advanced Gaussina Evaluation  "));
+    Serial.println(F("  CS123x Advanced Gaussian Evaluation  "));
     Serial.println(F("===================================="));
     Serial.print(F("Current Config -> Channel: "));
     Serial.print(getChannelName(cfg.channel));
@@ -224,9 +224,9 @@ void runGaussianTest() {
     Serial.print(noisePP);
     Serial.print(F(" LSB  ("));
     Serial.print(noisePP_uV, 3);
-    Serial.println(F(" uV) [yp: 0.180 uV @ 128x,10Hz]"));
+    Serial.println(F(" uV) [Typ: 0.180 uV @ 128x,10Hz]"));
     Serial.println(F("-----------------------------------"));
-    Serial.print(F("ENOB (RMS):      "));
+    Serial.print(F("ENOB (RMS):            "));
     Serial.print(enobRMS, 2);
     Serial.println(F(" bits [Typ: 20.0b-5V / 19.5b-3.3V (CS1237) | 20.7b-5V / 20.2b-3.3V (CS1238) @128x,10Hz]"));
     Serial.print(F("Noise-Free Resolution: "));
