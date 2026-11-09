@@ -66,14 +66,14 @@ However, the stock resistor **R1 = 1 kΩ** severely restricts the available curr
 
 Lower the effective series resistance by adding a resistor between the `DVDD/VCC` and `AVDD/E+` nodes or soldering a resistor directly in parallel with **R1** according to the formula above.
 
-For standard **350 Ω load cells**, the recommended values are:
+For standard **350 Ω load cells**, example values at the nominal supply voltage:
 
-| DVDD/VCC Voltage | Parallel Resistor | Equivalent R1 | Available Current | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **3.3V / 5.0V** | **100 Ω** | ~91 Ω | ~8.8mA / ~27.4mA | **Universal:** Works reliably for both 3.3V and 5V supply rails. |
-| **5.0V Only** | **220 Ω** | ~180 Ω | ~13.9mA | **5V Rail Only:** Lower quiescent power for 5V supply rails. |
+| DVDD/VCC Voltage | Parallel Resistor | Equivalent R1 | Available Current |
+| :--- | :--- | :--- | :--- |
+| **3.3V** | **100 Ω** | ~91 Ω | ~8.8mA |
+| **5.0V** | **330 Ω** | ~248 Ω | ~10.1mA |
 
 > [!IMPORTANT]
-> A lower R1 increases the TL431's steady-state current, and with it, its intrinsic noise even without a sensor connected. A bulk capacitor (10µF or larger) between `AVDD/E+` <=> `AGND/E-` is good practice in general, and becomes important once R1 is reduced: in testing, it cut the measured noise floor by roughly 5-6x.
+> Size the parallel resistor so the available current stays close to what the connected sensor needs plus the TL431's own bias, using the formulas above with your lowest supply voltage and sensor resistance. Excess current only adds TL431 noise and dissipation, while too little loses regulation (e.g. the 100 Ω above does so below ~3.24V with a 350 Ω sensor). For CS1238, count the draw of both channels.
 >
-> Use the formulas above with the sensor's resistance and supply voltage (for CS1238 the combined draw of both channels) to work out whether, and how much, R1 needs to be adjusted. Keeping an eye on the current/power the TL431 would need to dissipate if the sensor were ever disconnected.
+> Measurement stability (noise, drift) depends on the module's analog hardware and wiring, and is outside the scope of this library.

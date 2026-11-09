@@ -41,7 +41,8 @@ Examples downloaded directly from the registries include only the files required
 
 In both cases, the example is ready to build without additional setup.
 
-> **Note:** If you switch between ESP-IDF (`idf.py`) and PlatformIO on the same local checkout, run `idf.py fullclean` (or delete the `build/` directory) first. The two toolchains do not share build caches and may conflict otherwise.
+> [!NOTE]
+> If you switch between ESP-IDF (`idf.py`) and PlatformIO on the same local checkout, run `idf.py fullclean` (or delete the `build/` directory) first. The two toolchains do not share build caches and may conflict otherwise.
 
 ### Option A: ESP-IDF (native, `idf.py`)
 
@@ -55,8 +56,7 @@ In both cases, the example is ready to build without additional setup.
 
 ### Option B: ESP-IDF on PlatformIO
 
-- Download the example project from the PlatformIO Registry or directly [by clicking here](https://dl.registry.platformio.org/download/fmazz97/library/cs123x/2.0.4/example/ESP-IDF_simple_scale.zip).
-
+- Download the example project from the [PlatformIO Registry](https://registry.platformio.org/libraries/fmazz97/cs123x/examples/ESP-IDF_simple_scale).
 - Then **Build**, **Upload** and finally **Serial Monitor**.
 
 ---

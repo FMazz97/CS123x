@@ -1,8 +1,8 @@
-# CS123x - Dual-Framework Arduino / ESP-IDF Library for Chipsea CS1237 & CS1238 24-bit Differential ADCs
+# CS123x - Dual-Framework Driver for Chipsea CS1237 & CS1238 24-bit Differential ADCs
 
-Arduino and ESP-IDF library for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
+Arduino library and ESP-IDF component for Chipsea [CS1237](https://en.chipsea.com/product/details/?id=1155&pid=77) and [CS1238](https://en.chipsea.com/product/details/?id=1156&pid=77) 24-bit differential ADCs. Designed for weight scales, load cells, and bridge sensors with full PGA control, flexible sampling rates, two-point scale calibration, internal temperature monitoring, and internal short-circuit offset diagnostics.
 
-Built on a single framework-agnostic C++ core: use the familiar camelCase `CS123x` facade on Arduino, or the snake_case `cs123x` class directly in native ESP-IDF (v5.x–6.x) projects — same logic, same protocol implementation, zero duplication between the two. See: [Arduino - ESP-IDF Dual Library Guide](https://github.com/FMazz97/arduino-espidf-dual-library-guide) to know how to implement a dual framework library.
+Built on a single framework-agnostic C++ core with a **camelCase** facade for Arduino and a native **snake_case** API for ESP-IDF (v5.x–6.x) projects — same logic, same protocol implementation, zero duplication between the two. See: [Dual-Framework Library Guide](https://github.com/FMazz97/dual-framework-library-guide) to know how to implement an Arduino and ESP-IDF codebase.
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
